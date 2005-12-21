@@ -1,0 +1,12 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+RiveScript.pl
+RiveScript.html
+t/Chatbot-RiveScript.t
+lib/Chatbot/RiveScript.pm
+replies/begin.rs
+replies/config.rs
+replies/hello.rs
+replies/tests.rs

@@ -1,0 +1,777 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Chatbot::RiveScript - Rendering Intelligence Very Easily</title>
+<link rev="made" href="mailto:" />
+</head>
+
+<body style="background-color: white">
+
+<p><a name="__index__"></a></p>
+<!-- INDEX BEGIN -->
+
+<ul>
+
+	<li><a href="#name">NAME</a></li>
+	<li><a href="#synopsis">SYNOPSIS</a></li>
+	<li><a href="#description">DESCRIPTION</a></li>
+	<li><a href="#public_methods">PUBLIC METHODS</a></li>
+	<ul>
+
+		<li><a href="#new">new</a></li>
+		<li><a href="#setsubroutine__object_name____coderef_">setSubroutine (OBJECT_NAME =&gt; CODEREF)</a></li>
+		<li><a href="#loaddirectory__directory_">loadDirectory (DIRECTORY)</a></li>
+		<li><a href="#loadfile__filepath___stream__">loadFile (FILEPATH[, STREAM])</a></li>
+		<li><a href="#stream__code_">stream (CODE)</a></li>
+		<li><a href="#sortreplies">sortReplies</a></li>
+		<li><a href="#reply__user_id__message_">reply (USER_ID, MESSAGE)</a></li>
+		<li><a href="#setglobal__variable____value______">setGlobal (VARIABLE =&gt; VALUE, ...)</a></li>
+		<li><a href="#setvariable__variable____value______">setVariable (VARIABLE =&gt; VALUE, ...)</a></li>
+		<li><a href="#setsubstitution__before____after______">setSubstitution (BEFORE =&gt; AFTER, ...)</a></li>
+		<li><a href="#setuservar__user_id__variable____value______">setUservar (USER_ID, VARIABLE =&gt; VALUE, ...)</a></li>
+		<li><a href="#getuservars__user_id_">getUservars (USER_ID)</a></li>
+	</ul>
+
+	<li><a href="#private_methods">PRIVATE METHODS</a></li>
+	<ul>
+
+		<li><a href="#debug__message_">debug (MESSAGE)</a></li>
+		<li><a href="#intreply__user_id__message_">intReply (USER_ID, MESSAGE)</a></li>
+		<li><a href="#splitsentences__string_">splitSentences (STRING)</a></li>
+		<li><a href="#formatmessage__string_">formatMessage (STRING)</a></li>
+		<li><a href="#mergewildcards__string__hash_">mergeWildcards (STRING, HASH)</a></li>
+		<li><a href="#stringutil__type__string_">stringUtil (TYPE, STRING)</a></li>
+	</ul>
+
+	<li><a href="#format">FORMAT</a></li>
+	<li><a href="#rivescript_commands">RIVESCRIPT COMMANDS</a></li>
+	<li><a href="#rivescript_holds_the_keys">RIVESCRIPT HOLDS THE KEYS</a></li>
+	<li><a href="#complexities_of_the_trigger">COMPLEXITIES OF THE TRIGGER</a></li>
+	<li><a href="#complexities_of_the_response">COMPLEXITIES OF THE RESPONSE</a></li>
+	<li><a href="#begin_statement">BEGIN STATEMENT</a></li>
+	<li><a href="#topics">TOPICS</a></li>
+	<li><a href="#object_macros">OBJECT MACROS</a></li>
+	<li><a href="#tags">TAGS</a></li>
+	<ul>
+
+		<li><a href="#_star____star1____star100_">&lt;star&gt;, &lt;star1&gt; - &lt;star100&gt;</a></li>
+		<li><a href="#_input1____input9____reply1____reply9_">&lt;input1&gt; - &lt;input9&gt;; &lt;reply1&gt; - &lt;reply9&gt;</a></li>
+		<li><a href="#_bot_">&lt;bot&gt;</a></li>
+		<li><a href="#_get____set_">&lt;get&gt;, &lt;set&gt;</a></li>
+		<li><a href="#_topic_____">{topic=...}</a></li>
+		<li><a href="#_nextreply_">{nextreply}</a></li>
+		<li><a href="#______">{@...}</a></li>
+		<li><a href="#______">{!...}</a></li>
+		<li><a href="#_random______random_">{random}...{/random}</a></li>
+		<li><a href="#_formal______formal_">{formal}...{/formal}</a></li>
+		<li><a href="#_sentence______sentence_">{sentence}...{/sentence}</a></li>
+		<li><a href="#_uppercase______uppercase_">{uppercase}...{/uppercase}</a></li>
+		<li><a href="#_lowercase______lowercase_">{lowercase}...{/lowercase}</a></li>
+	</ul>
+
+	<li><a href="#reserved_variables">RESERVED VARIABLES</a></li>
+	<ul>
+
+		<li><a href="#reserved_global_variables">Reserved Global Variables</a></li>
+		<li><a href="#reserved_topic_names">Reserved Topic Names</a></li>
+		<li><a href="#reserved_user_id_s">Reserved User_ID's</a></li>
+	</ul>
+
+	<li><a href="#a_good_brain">A GOOD BRAIN</a></li>
+	<li><a href="#see_other">SEE OTHER</a></li>
+	<li><a href="#known_bugs">KNOWN BUGS</a></li>
+	<li><a href="#changes">CHANGES</a></li>
+	<li><a href="#author">AUTHOR</a></li>
+	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
+</ul>
+<!-- INDEX END -->
+
+<hr />
+<p>
+</p>
+<h1><a name="name">NAME</a></h1>
+<p>Chatbot::RiveScript - Rendering Intelligence Very Easily</p>
+<p>
+</p>
+<hr />
+<h1><a name="synopsis">SYNOPSIS</a></h1>
+<pre>
+  use Chatbot::RiveScript;</pre>
+<pre>
+  # Create a new RiveScript interpreter.
+  my $rs = new Chatbot::RiveScript;</pre>
+<pre>
+  # Define a macro.
+  $rs-&gt;setSubroutine (weather =&gt; \&amp;weather);</pre>
+<pre>
+  # Load in some RiveScript documents.
+  $rs-&gt;loadDirectory (&quot;./replies&quot;);</pre>
+<pre>
+  # Load in another file.
+  $rs-&gt;loadFile (&quot;./more_replies.rs&quot;);</pre>
+<pre>
+  # Stream in yet more replies.
+  $rs-&gt;stream ('! global split_sentences = 1');</pre>
+<pre>
+  # Sort them.
+  $rs-&gt;sortReplies;</pre>
+<pre>
+  # Grab a response.
+  my @reply = $rs-&gt;reply ('localhost','Hello RiveScript!');
+  print $reply[0] . &quot;\n&quot;;</pre>
+<p>
+</p>
+<hr />
+<h1><a name="description">DESCRIPTION</a></h1>
+<p>RiveScript was formerly known as Chatbot::Alpha. However, Chatbot::Alpha's
+syntax is <strong>not</strong> compatible with RiveScript.</p>
+<p>RiveScript is a simple input/response language. It is simple, easy to learn,
+and mimics and perhaps even surpasses the power of AIML (Artificial Intelligence
+Markup Language).</p>
+<p>
+</p>
+<hr />
+<h1><a name="public_methods">PUBLIC METHODS</a></h1>
+<p>
+</p>
+<h2><a name="new">new</a></h2>
+<p>Creates a new Chatbot::RiveScript instance. Pass in any defaults here.</p>
+<p>
+</p>
+<h2><a name="setsubroutine__object_name____coderef_">setSubroutine (OBJECT_NAME =&gt; CODEREF)</a></h2>
+<p>Define a macro (see Object Macros)</p>
+<p>
+</p>
+<h2><a name="loaddirectory__directory_">loadDirectory (DIRECTORY)</a></h2>
+<p>Load a directory of RiveScript (.rs) files.</p>
+<p>
+</p>
+<h2><a name="loadfile__filepath___stream__">loadFile (FILEPATH[, STREAM])</a></h2>
+<p>Load a single file. Don't worry about the STREAM argument, it is handled
+in the <code>stream()</code> method.</p>
+<p>
+</p>
+<h2><a name="stream__code_">stream (CODE)</a></h2>
+<p>Stream RiveScript code directly into the module.</p>
+<p>
+</p>
+<h2><a name="sortreplies">sortReplies</a></h2>
+<p>Sorts the replies. This is ideal for matching purposes. If you fail to
+do so and just go ahead and call reply(), you'll get a nasty Perl warning.
+It will sort them for you anyway, but it's always recommended to sort them
+yourself. For example, if you sort them and then load new replies, the new
+replies will not be matchable because the sort cache hasn't updated.</p>
+<p>
+</p>
+<h2><a name="reply__user_id__message_">reply (USER_ID, MESSAGE)</a></h2>
+<p>Get a reply from the bot. This will return an array. The values of this
+array would be all the replies (i.e. if you use {nextreply} in a response
+to return multiple).</p>
+<p>
+</p>
+<h2><a name="setglobal__variable____value______">setGlobal (VARIABLE =&gt; VALUE, ...)</a></h2>
+<p>Set a global variable directly from Perl (alias for <strong>! global</strong>)</p>
+<p>
+</p>
+<h2><a name="setvariable__variable____value______">setVariable (VARIABLE =&gt; VALUE, ...)</a></h2>
+<p>Set a botvariable (alias for <strong>! var</strong>)</p>
+<p>
+</p>
+<h2><a name="setsubstitution__before____after______">setSubstitution (BEFORE =&gt; AFTER, ...)</a></h2>
+<p>Set a substitution setting (alias for <strong>! sub</strong>)</p>
+<p>
+</p>
+<h2><a name="setuservar__user_id__variable____value______">setUservar (USER_ID, VARIABLE =&gt; VALUE, ...)</a></h2>
+<p>Set a user variable (alias for &lt;set var=value&gt;)</p>
+<p>
+</p>
+<h2><a name="getuservars__user_id_">getUservars (USER_ID)</a></h2>
+<p>Get all variables for a user, returns a hash reference. (alias for &lt;get var&gt;
+for every variable). If you don't provide a USER_ID, or provide '__rivescript__'
+(see Reserved Variables), it will return an array reference of hash references,
+to get variables of all users.</p>
+<p>
+</p>
+<hr />
+<h1><a name="private_methods">PRIVATE METHODS</a></h1>
+<p>These methods are called on internally and should not be called by you.</p>
+<p>
+</p>
+<h2><a name="debug__message_">debug (MESSAGE)</a></h2>
+<p>Print a debug message.</p>
+<p>
+</p>
+<h2><a name="intreply__user_id__message_">intReply (USER_ID, MESSAGE)</a></h2>
+<p>This should not be called. Call <strong>reply</strong> instead. This method assumes
+that the variables are neatly formatted and may cause serious consequences
+for passing in badly formatted data.</p>
+<p>
+</p>
+<h2><a name="splitsentences__string_">splitSentences (STRING)</a></h2>
+<p>Splits string at the sentence-splitters and returns an array.</p>
+<p>
+</p>
+<h2><a name="formatmessage__string_">formatMessage (STRING)</a></h2>
+<p>Formats the message (runs substitutions, removes punctuation, etc)</p>
+<p>
+</p>
+<h2><a name="mergewildcards__string__hash_">mergeWildcards (STRING, HASH)</a></h2>
+<p>Merges the hash from HASH into STRING, where the keys in HASH should be
+from 1 to 100, for the wildcard captor.</p>
+<p>
+</p>
+<h2><a name="stringutil__type__string_">stringUtil (TYPE, STRING)</a></h2>
+<p>Called on for string format tags (uppercase, lowercase, formal, sentence).</p>
+<p>
+</p>
+<hr />
+<h1><a name="format">FORMAT</a></h1>
+<p>RiveScript documents have a simple format: they're a line-by-line
+language. The first <code>symbol(s)</code> are the commands, and the following text
+is typically the command's data.</p>
+<p>In its most simple form, a valid RiveScript entry looks like this:</p>
+<pre>
+  + hello bot
+  - Hello human.</pre>
+<p>
+</p>
+<hr />
+<h1><a name="rivescript_commands">RIVESCRIPT COMMANDS</a></h1>
+<p>The following are the commands that RiveScript supports.</p>
+<dl>
+<dt><strong><a name="item__21__28definition_29"><strong>! (Definition)</strong></a></strong><br />
+</dt>
+<dd>
+The ! command is for definitions. These are one of the few stand-alone
+commands (ones that needn't be part of a bigger reply group). They are
+to define variables and arrays. Their format is as follows:
+</dd>
+<dd>
+<pre>
+  ! type variable = value</pre>
+</dd>
+<dd>
+<pre>
+  type     = the variable type
+  variable = the name of the variable
+  value    = the variable's value</pre>
+</dd>
+<dd>
+<p>The supported types are as follows:</p>
+</dd>
+<dd>
+<pre>
+  global - Global settings (top-level things)
+  var    - BotVariables (i.e. the bot's name, age, etc)
+  array  - An array
+  sub    - A substitution pattern</pre>
+</dd>
+<p></p>
+<dt><strong><a name="item_and"><strong>(LT) and (GT) (Label)</strong></a></strong><br />
+</dt>
+<dd>
+The &lt; and &gt; commands are for defining labels. A label is used to treat
+a part of code differently. Currently there are two uses for labels:
+<strong>begin</strong> and <strong>topic</strong>. Example usage:
+</dd>
+<dd>
+<pre>
+  // Define a topic
+  &gt; topic some_topic_name</pre>
+</dd>
+<dd>
+<pre>
+    // there'd be some triggers here</pre>
+</dd>
+<dd>
+<pre>
+  &lt; topic
+  // close the topic</pre>
+</dd>
+<p></p>
+<dt><strong><a name="item__2b__28trigger_29"><strong>+ (Trigger)</strong></a></strong><br />
+</dt>
+<dd>
+The + command is the basis for all triggers. The + command is what the
+user has to say to activate the reply set. In the example,
+</dd>
+<dd>
+<pre>
+  + hello bot
+  - Hello human.</pre>
+</dd>
+<dd>
+<p>The user would say ``hello bot'' only to get a ``Hello human.'' back.</p>
+</dd>
+<p></p>
+<dt><strong><a name="item__25__28previous_29"><strong>% (Previous)</strong></a></strong><br />
+</dt>
+<dd>
+The % command is for drawing a user back to complete a thought. You
+might say it's sort of like &lt;that&gt; in AIML. Example:
+</dd>
+<dd>
+<pre>
+  + ask me a question
+  - Do you have any pets?</pre>
+</dd>
+<dd>
+<pre>
+  + yes
+  % do you have any pets
+  - What kind of pet?</pre>
+</dd>
+<dd>
+<pre>
+  // and so-on...</pre>
+</dd>
+<p></p>
+<dt><strong><a name="item__2d__28response_29"><strong>- (Response)</strong></a></strong><br />
+</dt>
+<dd>
+The - command is the response. The - command has several uses, depending
+on its context. For example, in the ``hello bot/hello human'' example, one
++ with one - gets a one-way question/answer scenario. If more than one -
+is used, a random one is chosen (and some may be weighted). There are many
+other uses that we'll get into later.
+</dd>
+<p></p>
+<dt><strong><a name="item__5e__28continue_29"><strong>^ (Continue)</strong></a></strong><br />
+</dt>
+<dd>
+Sometimes your -REPLY is too long to fit on one line, and you don't like
+the idea of having a horizontal scrollbar. The ^ command will continue on
+from the last -REPLY. For example:
+</dd>
+<dd>
+<pre>
+  + tell me a poem
+  - Little Miss Muffit sat on her tuffet
+  ^ in a nonchalant sort of way.
+  ^ With her forcefield around her,
+  ^ the Spider, the bounder,
+  ^ is not in the picture today.</pre>
+</dd>
+<p></p>
+<dt><strong><a name="item__40__28redirect_29"><strong>@ (Redirect)</strong></a></strong><br />
+</dt>
+<dd>
+The @ command is for directing one trigger to another. For example, there
+may be complicated ways people have of asking the same thing, and you don't
+feel like making your main trigger handle all of them.
+</dd>
+<dd>
+<pre>
+  + my name is *
+  - Nice to meet you, {formal}&lt;star1&gt;{/formal}.</pre>
+</dd>
+<dd>
+<pre>
+  + people around here call me *
+  @ my name is &lt;star1&gt;</pre>
+</dd>
+<dd>
+<p>Redirections can also be used inline. See the ``TAGS'' section for more details.</p>
+</dd>
+<p></p>
+<li><strong><a name="item__28conditions_29"><strong>* (Conditions)</strong></a></strong><br />
+</li>
+The * command is used for checking conditionals. The format is:
+<pre>
+  * variable=value =&gt; say this</pre>
+<p>For example, you might want to make a condition to differentiate male from
+female users.</p>
+<pre>
+  + am i a guy or a girl
+  * gender=male =&gt; You're a guy.
+  * gender=female =&gt; You're a girl.
+  - I don't think you ever told me what you are.</pre>
+<p></p>
+<dt><strong><a name="item__26__28perl_29"><strong>&amp; (Perl)</strong></a></strong><br />
+</dt>
+<dd>
+Sometimes RiveScript isn't powerful enough to do what you want. The &amp; command
+will execute Perl codes to handle these cases. Be sure to read through this
+whole manpage before resorting to Perl, though. RiveScript has come a long way
+since it was known as Chatbot::Alpha.
+</dd>
+<dd>
+<pre>
+  + what is 2 plus 2
+  - 500 Internal Error.
+  # $reply = '2 + 2 = 4';</pre>
+</dd>
+<p></p>
+<dt><strong><a name="item__2f_2f__28comments_29"><strong>// (Comments)</strong></a></strong><br />
+</dt>
+<dd>
+The comment syntax is //, as it is in other programming languages. Also,
+/* */ comments may be used to span over multiple lines.
+</dd>
+<dd>
+<pre>
+  // A one-line comment</pre>
+</dd>
+<dd>
+<pre>
+  /*
+    this comment spans
+    across multiple lines
+  */</pre>
+</dd>
+<p></p></dl>
+<p>
+</p>
+<hr />
+<h1><a name="rivescript_holds_the_keys">RIVESCRIPT HOLDS THE KEYS</a></h1>
+<p>The RiveScript engine was designed for your RiveScript brain to hold most of the
+control. As little programming on the Perl side as possible has made it so that
+your RiveScript can define its own variables and handle what it wants to. See
+``A Good Brain'' for tips on how to approach this.</p>
+<p>
+</p>
+<hr />
+<h1><a name="complexities_of_the_trigger">COMPLEXITIES OF THE TRIGGER</a></h1>
+<p>The + command can be used for more complex things as a simple, 100% dead-on
+trigger. This part is passed through a regexp. Therefore, any regexp things
+can be used in the trigger.</p>
+<p><strong>Note:</strong> an asterisk * is always converted into (.*?) regardless of its context.
+Keep this in mind.</p>
+<p><strong>Alternations:</strong> You can use alternations in the triggers like so:</p>
+<pre>
+  + what (s|is) your (home|office|cell) phone number</pre>
+<p>Anything inside of parenthesis, or anything matched by asterisks, can be
+obtained through the tags &lt;star1&gt; to &lt;star100&gt;. For example (keeping in mind
+that * equals (.*?):</p>
+<pre>
+  + my name is *
+  - Nice to meet you, &lt;star1&gt;.</pre>
+<p><strong>Arrays:</strong> This is why it's good to define arrays using the !define tag. The
+best way to explain how this works is by example.</p>
+<pre>
+  // Make an array of color names
+  ! array colors = red blue green yellow white black orange</pre>
+<pre>
+  // Now the user can tell us their favorite color from the array
+  + my favorite color is (@colors)
+  - Really! Mine is &lt;star1&gt; too!</pre>
+<p>It turns your array into regexp form, <strong>(red|blue|green|yellow|...)</strong> before matching
+so it saves you a lot of work there. Not to mention arrays can be used in any number
+of triggers! Just imagine how many triggers you can come up with where a color name
+would be needed...</p>
+<p>
+</p>
+<hr />
+<h1><a name="complexities_of_the_response">COMPLEXITIES OF THE RESPONSE</a></h1>
+<p>As mentioned above, the - command has many many uses.</p>
+<p><strong>One-way question/answer:</strong> A single + and a single - will lead to a dead-on
+question and answer reply.</p>
+<p><strong>Random Replies:</strong> A single + with multiple -'s will yield random results
+from among the responses. For example:</p>
+<pre>
+  + hello
+  - Hey.
+  - Hi.
+  - Hello.</pre>
+<p>Would randomly return any of those three responses.</p>
+<p><strong>Conditional Fallback:</strong> When using conditionals, you should always provide
+at least one response to fall back on, in case every conditional returns false.</p>
+<p><strong>Perl Code Fallback:</strong> When executing Perl code, you should always have a response
+to fall back on [even if the Perl is going to redefine $reply for itself]. This is
+in case of an eval error and the Perl couldn't do its thing.</p>
+<p><strong>Weighted Responses:</strong> Yes, with random responses you can weight them! Responses
+with higher weight will have a better chance of being chosen over ones with a low
+weight. For example:</p>
+<pre>
+  + hello
+  - Hello, how are you?{weight=49}
+  - Yo, wazzup dawg?{weight=1}</pre>
+<p>In this case, ``Hello, how are you?'' will almost always be sent back. A 1 in 50
+chance would return ``Yo, wazzup dawg?'' instead.</p>
+<p>(as a side note: you don't need to set a weight to 1; 1 is implied for any
+response without weight. Weights of less than 1 aren't acceptable)</p>
+<p>
+</p>
+<hr />
+<h1><a name="begin_statement">BEGIN STATEMENT</a></h1>
+<p><strong>Note:</strong> BEGIN statements are not required. That being said, begin statements
+are executed before any request.</p>
+<p><strong>How to define a BEGIN statement</strong></p>
+<pre>
+  &gt; begin
+    + request
+    - {ok}
+  &lt; begin</pre>
+<p>Begin statements are sort of like topics. They are called first. If the response
+given contains {ok} in it, then the module knows it's allowed to get a reply.
+Also note that {ok} is replaced with the response. In this way, <strong>begin</strong> might be
+useful to format all responses in one way. For a good example:</p>
+<pre>
+  &gt; begin</pre>
+<pre>
+    // Don't give a reply if the bot is down for maintenance.
+    + request
+    * down=yes =&gt; The bot is currently deactivated for maintenance.
+    - &lt;font color=&quot;red&quot;&gt;&lt;b&gt;{ok}&lt;/b&gt;&lt;/font&gt;</pre>
+<pre>
+  &lt; begin</pre>
+<p>That would give the reply about the bot being under maintenance if the variable
+``down'' equals ``yes.'' Else, it would give a response in red bold font.</p>
+<p><strong>Note:</strong> At the time being, the only trigger that BEGIN ever receives is ``request''</p>
+<p>
+</p>
+<hr />
+<h1><a name="topics">TOPICS</a></h1>
+<p>Topics are declared in a way similar to the BEGIN statement. The way to declare
+and close a topic is generally as follows:</p>
+<pre>
+  &gt; topic TOPICNAME
+    ...
+  &lt; topic</pre>
+<p>The topic name should be unique, and only one word.</p>
+<p><strong>The Default Topic:</strong> The default topic name is ``random''</p>
+<p><strong>Setting a Topic:</strong> To set a topic, use the {topic} tag (see ``Tags'' below). Example:</p>
+<pre>
+  + i hate you
+  - You're not very nice. I'm going to make you apologize.{topic=apology}</pre>
+<pre>
+  &gt; topic apology
+    + *
+    - Not until you admit that you're sorry.</pre>
+<pre>
+    + sorry
+    - Okay, I'll forgive you.{topic=random}
+  &lt; topic</pre>
+<p>Always set topic back to ``random'' to break out of a topic.</p>
+<p>
+</p>
+<hr />
+<h1><a name="object_macros">OBJECT MACROS</a></h1>
+<p>Special macros (Perl routines) can be defined and then utilized in your RiveScript
+code.</p>
+<p><strong>Define a Macro:</strong> This must be done from the Perl side (oh, darn, RiveScript doesn't
+have full control). This is done like so:</p>
+<pre>
+  # Define a weather lookup macro.
+  $rs-&gt;setSubroutine (weather =&gt; \&amp;weather_lookup);</pre>
+<p><strong>Use a Macro:</strong> You can use a macro within a reply such as this example:</p>
+<pre>
+  + give me the local weather for *
+  - Weather for &amp;weather.cityname(&lt;star1&gt;):\n\n
+  ^ Temperature: &amp;weather.temp(&lt;star1&gt;)\n
+  ^ Feels Like: &amp;weather.feelslike(&lt;star1&gt;)</pre>
+<p>The subroutine ``weather_lookup'' will receive two variables: the method and the
+arguments. The method would be the bit following the dot (i.e. ``cityname'',
+``temp'', or ``feelslike'' in this example). The arguments would be the value of
+&lt;star1&gt;.</p>
+<p>Whatever weather_lookup would return is inserted into the reply in place of the
+macro call.</p>
+<p>
+</p>
+<hr />
+<h1><a name="tags">TAGS</a></h1>
+<p>Special tags can be inserted into replies and redirections. They are as follows:</p>
+<p>
+</p>
+<h2><a name="_star____star1____star100_">&lt;star&gt;, &lt;star1&gt; - &lt;star100&gt;</a></h2>
+<p>These tags will insert the values of $1 to $100, as matched in the regexp, into
+the reply. They go in order from left to right. &lt;star&gt; is an alias for &lt;star1&gt;.</p>
+<p>
+</p>
+<h2><a name="_input1____input9____reply1____reply9_">&lt;input1&gt; - &lt;input9&gt;; &lt;reply1&gt; - &lt;reply9&gt;</a></h2>
+<p>Inserts the last 1 to 9 things the user said, and the last 1 to 9 things the bot
+said, respectively. Good for things like ``You said hello and then I said hi and then
+you said what's up and then I said not much''</p>
+<p>
+</p>
+<h2><a name="_bot_">&lt;bot&gt;</a></h2>
+<p>Insert a bot variable (defined with <strong>! var</strong>).</p>
+<pre>
+  + what is your name
+  - I am &lt;bot name&gt;, created by &lt;bot companyname&gt;.</pre>
+<p>
+</p>
+<h2><a name="_get____set_">&lt;get&gt;, &lt;set&gt;</a></h2>
+<p>Get and set a user variable. These are local variables for each user.</p>
+<pre>
+  + my name is *
+  - &lt;set name={formal}&lt;star1&gt;{/formal}&gt;Nice to meet you, &lt;get name&gt;!</pre>
+<pre>
+  + who am i
+  - You are &lt;get name&gt; aren't you?</pre>
+<p>
+</p>
+<h2><a name="_topic_____">{topic=...}</a></h2>
+<p>The topic tag. This will set the user's topic to something else (see TOPICS). Only
+one of these should be in a response, and in the case of duplicates only the first
+one is evaluated.</p>
+<p>
+</p>
+<h2><a name="_nextreply_">{nextreply}</a></h2>
+<p>Breaks the reply into two (or more) parts there. Will cause the <strong>reply</strong> method
+to return multiple responses.</p>
+<p>
+</p>
+<h2><a name="______">{@...}</a></h2>
+<p>An inline redirection. These work like normal redirections, except are inserted
+inline into a reply.</p>
+<pre>
+  + * or something
+  - Or something. {@&lt;star1&gt;}</pre>
+<p>
+</p>
+<h2><a name="______">{!...}</a></h2>
+<p>An inline definition. These can be used to (re)set variables. This tag is invisible
+in the final response of the bot; the changes are made silently.</p>
+<p>
+</p>
+<h2><a name="_random______random_">{random}...{/random}</a></h2>
+<p>Will insert a bit of random text. This has two syntaxes:</p>
+<pre>
+  Insert a random word (separate by spaces)
+  {random}red blue green yellow{/random}</pre>
+<pre>
+  Insert a random phrase (separate by pipes)
+  {random}Yes sir.|No sir.{/random}</pre>
+<p>
+</p>
+<h2><a name="_formal______formal_">{formal}...{/formal}</a></h2>
+<p>Will Make Your Text Formal</p>
+<p>
+</p>
+<h2><a name="_sentence______sentence_">{sentence}...{/sentence}</a></h2>
+<p>Will make your text sentence-cased.</p>
+<p>
+</p>
+<h2><a name="_uppercase______uppercase_">{uppercase}...{/uppercase}</a></h2>
+<p>WILL MAKE THE TEXT UPPERCASE.</p>
+<p>
+</p>
+<h2><a name="_lowercase______lowercase_">{lowercase}...{/lowercase}</a></h2>
+<p>will make the text lowercase.</p>
+<p>
+</p>
+<hr />
+<h1><a name="reserved_variables">RESERVED VARIABLES</a></h1>
+<p>The following are all the reserved variables and values within RiveScript's
+processor.</p>
+<p>
+</p>
+<h2><a name="reserved_global_variables">Reserved Global Variables</a></h2>
+<p>These variables cannot be overwritten with the <strong>! global</strong> command:</p>
+<pre>
+  reserved replies array syntax streamcache botvars uservars
+  botarrays sort users substitutions</pre>
+<p>
+</p>
+<h2><a name="reserved_topic_names">Reserved Topic Names</a></h2>
+<p>The following topic names are reserved and should never be (re)created in
+your RiveScript files:</p>
+<pre>
+  __begin__   (used for the BEGIN method)
+  __that__*   (used for the %PREVIOUS command)</pre>
+<p>
+</p>
+<h2><a name="reserved_user_id_s">Reserved User_ID's</a></h2>
+<p>These are the reserved User ID's that you should not pass in to the <strong>reply</strong>
+method when getting a reply.</p>
+<pre>
+  __rivescript__   (to query the BEGIN method)</pre>
+<p>
+</p>
+<hr />
+<h1><a name="a_good_brain">A GOOD BRAIN</a></h1>
+<p>Since RiveScript leaves a lot of control up to the brain and not the Perl code,
+here are some general tips to follow when writing your own brain:</p>
+<p><strong>Make a config file.</strong> This would probably be named ``config.rs'' and it would
+handle all your definitions. For example it might look like this:</p>
+<pre>
+  // Set up globals
+  ! global debug = 0
+  ! global split_sentences = 1
+  ! global sentence_splitters = . ! ; ?</pre>
+<pre>
+  // Set a variable to say that we're active.
+  ! var active = yes</pre>
+<pre>
+  // Set up botvariables
+  ! var botname = Rive
+  ! var botage = 5
+  ! var company = AiChaos Inc.
+  // note that &quot;bot&quot; isn't required in these variables,
+  // it's only there for readibility</pre>
+<pre>
+  // Set up substitutions
+  ! sub won't = will not
+  ! sub i'm = i am
+  // etc</pre>
+<pre>
+  // Set up arrays
+  ! array colors = red green blue yellow cyan fuchsia ...</pre>
+<p>Here are a list of all the globals you might want to configure.</p>
+<pre>
+  split_sentences    - Whether to do sentence-splitting (1 or 0, default 1)
+  sentence_splitters - Where to split sentences at. Separate items with a single
+                       space. The defaults are:   ! . ? ;
+  debug              - Debug mode (1 or 0, default 0)</pre>
+<p><strong>Make a begin file.</strong> This file would handle your BEGIN code. Again, this isn't
+required but has its benefits. This file might be called ``begin.rs'' (or you could
+include it in config.rs if you're a micromanager).</p>
+<p>Your begin file could check the ``active'' variable we set in the config file to
+decide if it should give a reply.</p>
+<pre>
+  &gt; begin
+    + request
+    * active=no =&gt; Sorry but I'm deactivated right now!
+    - {ok}
+  &lt; begin</pre>
+<p>These are the basic tips, just for organizational purposes.</p>
+<p>
+</p>
+<hr />
+<h1><a name="see_other">SEE OTHER</a></h1>
+<p>You might want to take a look at <a href="/Chatbot/Alpha.html">the Chatbot::Alpha manpage</a>, this module's predecessor.</p>
+<p>
+</p>
+<hr />
+<h1><a name="known_bugs">KNOWN BUGS</a></h1>
+<p>I'm sure there are some, as this is a beta release, but none have come to
+show themselves yet.</p>
+<p>
+</p>
+<hr />
+<h1><a name="changes">CHANGES</a></h1>
+<pre>
+  Version 0.01
+  - Initial Release</pre>
+<p>
+</p>
+<hr />
+<h1><a name="author">AUTHOR</a></h1>
+<pre>
+  Cerone Kirsle, kirsle --at-- rainbowboi.com</pre>
+<p>
+</p>
+<hr />
+<h1><a name="copyright_and_license">COPYRIGHT AND LICENSE</a></h1>
+<pre>
+    Chatbot::RiveScript - Rendering Intelligence Very Easily
+    Copyright (C) 2005  Cerone J. Kirsle</pre>
+<pre>
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.</pre>
+<pre>
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.</pre>
+<pre>
+    You should have received a copy of the GNU General Public License
+    along with this program; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</pre>
+
+</body>
+
+</html>

@@ -56,6 +56,7 @@
 
 		<li><a href="#_star____star1____star100_">&lt;star&gt;, &lt;star1&gt; - &lt;star100&gt;</a></li>
 		<li><a href="#_input1____input9____reply1____reply9_">&lt;input1&gt; - &lt;input9&gt;; &lt;reply1&gt; - &lt;reply9&gt;</a></li>
+		<li><a href="#_id_">&lt;id&gt;</a></li>
 		<li><a href="#_bot_">&lt;bot&gt;</a></li>
 		<li><a href="#_get____set_">&lt;get&gt;, &lt;set&gt;</a></li>
 		<li><a href="#_topic_____">{topic=...}</a></li>
@@ -118,7 +119,7 @@
 <pre>
   # Grab a response.
   my @reply = $rs-&gt;reply ('localhost','Hello RiveScript!');
-  print $reply[0] . &quot;\n&quot;;</pre>
+  # print $reply[0] . &quot;\n&quot;;</pre>
 <p>
 </p>
 <hr />
@@ -198,7 +199,7 @@ to get variables of all users.</p>
 <p>
 </p>
 <h2><a name="debug__message_">debug (MESSAGE)</a></h2>
-<p>Print a debug message.</p>
+<p># print a debug message.</p>
 <p>
 </p>
 <h2><a name="intreply__user_id__message_">intReply (USER_ID, MESSAGE)</a></h2>
@@ -584,6 +585,10 @@ said, respectively. Good for things like ``You said hello and then I said hi and
 you said what's up and then I said not much''</p>
 <p>
 </p>
+<h2><a name="_id_">&lt;id&gt;</a></h2>
+<p>Inserts the user's ID.</p>
+<p>
+</p>
 <h2><a name="_bot_">&lt;bot&gt;</a></h2>
 <p>Insert a bot variable (defined with <strong>! var</strong>).</p>
 <pre>
@@ -741,6 +746,16 @@ show themselves yet.</p>
 </p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
+<pre>
+  Version 0.02
+  - Fixed a regexp bug; now it stops searching when it finds a match
+    (it would cause errors with $1 to $100)
+  - Fixed an inconsistency that didn't allow uservars to work in
+    conditionals.
+  - Added &lt;id&gt; tag, useful for objects that need a unique user to work
+    with.
+  - Fixed bug that warned about comments that began with more than
+    one set of //</pre>
 <pre>
   Version 0.01
   - Initial Release</pre>

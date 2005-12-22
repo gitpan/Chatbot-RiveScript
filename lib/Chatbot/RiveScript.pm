@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new {
 	my $proto = shift;
@@ -217,7 +217,7 @@ sub loadFile {
 		my ($command,$data) = split(/\s+/, $line, 2);
 
 		# Check for comment commands...
-		if ($command eq '//') {
+		if ($command =~ /^\/\//) {
 			# Single comment. Skip it.
 			next;
 		}
@@ -649,6 +649,7 @@ sub intReply {
 
 		# Check the inputs.
 		foreach my $in (@{$self->{array}->{$topic}}) {
+			last if defined $reply;
 			# Slightly format the trigger to be regexp friendly.
 			my $regexp = $in;
 			$regexp =~ s~\*~\(\.\*\?\)~g;
@@ -669,6 +670,7 @@ sub intReply {
 			# See if it's a match.
 			if ($msg =~ /^$regexp$/i) {
 				# Collect the stars.
+				# print "\$1 = $1\n";
 				for (my $i = 1; $i <= 100; $i++) {
 					$stars{$i} = eval ('$' . $i);
 				}
@@ -699,7 +701,7 @@ sub intReply {
 						my ($var,$value) = split(/=/, $cond, 2);
 
 						# Check variables.
-						if (exists $self->{botvars}->{$var} || exists $self->{uservars}->{$var}) {
+						if (exists $self->{botvars}->{$var} || exists $self->{uservars}->{$id}->{$var}) {
 							if (exists $self->{botvars}->{$var}) {
 								if (($value =~ /[^0-9]/ && $self->{botvars}->{$var} eq $value) ||
 								($self->{botvars}->{$var} eq $value)) {
@@ -707,8 +709,8 @@ sub intReply {
 								}
 							}
 							else {
-								if (($value =~ /[^0-9]/ && $self->{uservars}->{$var} eq $value) ||
-								($self->{uservars}->{$var} eq $value)) {
+								if (($value =~ /[^0-9]/ && $self->{uservars}->{$id}->{$var} eq $value) ||
+								($self->{uservars}->{$id}->{$var} eq $value)) {
 									$reply = $happens;
 								}
 							}
@@ -783,6 +785,7 @@ sub intReply {
 
 	# Insert variables.
 	$reply =~ s/<bot (.*?)>/$self->{botvars}->{$1}/ig;
+	$reply =~ s/<id>/$id/ig;
 
 	# String modifiers.
 	while ($reply =~ /\{(formal|uppercase|lowercase|sentence)\}(.*?)\{\/(formal|uppercase|lowercase|sentence)\}/i) {
@@ -1052,7 +1055,7 @@ Chatbot::RiveScript - Rendering Intelligence Very Easily
 
   # Grab a response.
   my @reply = $rs->reply ('localhost','Hello RiveScript!');
-  print $reply[0] . "\n";
+  # print $reply[0] . "\n";
 
 =head1 DESCRIPTION
 
@@ -1129,7 +1132,7 @@ These methods are called on internally and should not be called by you.
 
 =head2 debug (MESSAGE)
 
-Print a debug message.
+# print a debug message.
 
 =head2 intReply (USER_ID, MESSAGE)
 
@@ -1482,6 +1485,10 @@ Inserts the last 1 to 9 things the user said, and the last 1 to 9 things the bot
 said, respectively. Good for things like "You said hello and then I said hi and then
 you said what's up and then I said not much"
 
+=head2 <id>
+
+Inserts the user's ID.
+
 =head2 <bot>
 
 Insert a bot variable (defined with B<! var>).
@@ -1639,6 +1646,16 @@ I'm sure there are some, as this is a beta release, but none have come to
 show themselves yet.
 
 =head1 CHANGES
+
+  Version 0.02
+  - Fixed a regexp bug; now it stops searching when it finds a match
+    (it would cause errors with $1 to $100)
+  - Fixed an inconsistency that didn't allow uservars to work in
+    conditionals.
+  - Added <id> tag, useful for objects that need a unique user to work
+    with.
+  - Fixed bug that warned about comments that began with more than
+    one set of //
 
   Version 0.01
   - Initial Release

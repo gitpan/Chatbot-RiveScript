@@ -1,5 +1,15 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
-0.01  Tue Dec 20 14:51:39 2005
+0.02	Thu Dec 22 11:28:00 2005
+	- Fixed a regexp bug; now it stops searching when it finds a match
+		(it would cause errors with $1 to $100)
+	- Fixed an inconsistency that didn't allow uservars to work in
+		conditionals.
+	- Added <id> tag, useful for objects that need a unique user to work
+		with.
+	- Fixed bug that warned about comments that began with more than
+		one set of //
+
+0.01	Tue Dec 20 14:51:39 2005
 	- Initial release
 

@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub new {
 	my $proto = shift;
@@ -665,6 +665,15 @@ sub intReply {
 				$regexp =~ s/\(\@$o\)/$rep/ig;
 			}
 
+			# Filter in botvariables.
+			while ($regexp =~ /<bot (.*?)>/i) {
+				my $o = $1;
+				my $value = $self->{botvars}->{$o};
+				$value =~ s/[^A-Za-z0-9 ]//g;
+				$value = lc($value);
+				$regexp =~ s/<bot $o>/$value/ig;
+			}
+
 			# print "\tComparing $msg with $regexp\n";
 
 			# See if it's a match.
@@ -936,6 +945,48 @@ sub intReply {
 	return $reply;
 }
 
+sub search {
+	my ($self,$string) = @_;
+
+	# Search for this string.
+	$string = $self->formatMessage ($string);
+
+	my @result = ();
+	foreach my $topic (keys %{$self->{array}}) {
+		foreach my $trigger (@{$self->{array}->{$topic}}) {
+			my $regexp = $trigger;
+			$regexp =~ s~\*~\(\.\*\?\)~g;
+
+			# Filter in arrays.
+			while ($regexp =~ /\(\@(.*?)\)/i) {
+				my $o = $1;
+				my $name = $o;
+				my $rep = '';
+				if (exists $self->{botarrays}->{$name}) {
+					$rep = '(' . join ('|', @{$self->{botarrays}->{$name}}) . ')';
+				}
+				$regexp =~ s/\(\@$o\)/$rep/ig;
+			}
+
+			# Filter in botvariables.
+			while ($regexp =~ /<bot (.*?)>/i) {
+				my $o = $1;
+				my $value = $self->{botvars}->{$o};
+				$value =~ s/[^A-Za-z0-9 ]//g;
+				$value = lc($value);
+				$regexp =~ s/<bot $o>/$value/ig;
+			}
+
+			# Match?
+			if ($string =~ /^$regexp$/i) {
+				push (@result, "$trigger (topic: $topic) at $self->{syntax}->{$topic}->{$trigger}->{ref}");
+			}
+		}
+	}
+
+	return @result;
+}
+
 sub splitSentences {
 	my ($self,$msg) = @_;
 
@@ -1102,6 +1153,12 @@ replies will not be matchable because the sort cache hasn't updated.
 Get a reply from the bot. This will return an array. The values of this
 array would be all the replies (i.e. if you use {nextreply} in a response
 to return multiple).
+
+=head2 search (STRING)
+
+Search all loaded replies for every trigger that STRING matches. Returns an
+array of results, containing the trigger, what topic it was under, and the
+reference to its file and line number.
 
 =head2 setGlobal (VARIABLE => VALUE, ...)
 
@@ -1496,6 +1553,11 @@ Insert a bot variable (defined with B<! var>).
   + what is your name
   - I am <bot name>, created by <bot companyname>.
 
+This variable can also be used in triggers.
+
+  + my name is <bot name>
+  - <set name=<bot name>>What a coincidence, that's my name too!
+
 =head2 <get>, <set>
 
 Get and set a user variable. These are local variables for each user.
@@ -1647,6 +1709,11 @@ show themselves yet.
 
 =head1 CHANGES
 
+  Version 0.03
+  - Added search() method.
+  - <bot> variables can be inserted into triggers now (for example having
+    the bot reply to its name no matter what its name is)
+
   Version 0.02
   - Fixed a regexp bug; now it stops searching when it finds a match
     (it would cause errors with $1 to $100)
@@ -1654,8 +1721,7 @@ show themselves yet.
     conditionals.
   - Added <id> tag, useful for objects that need a unique user to work
     with.
-  - Fixed bug that warned about comments that began with more than
-    one set of //
+  - Fixed bug that lets comments begin with more than one set of //
 
   Version 0.01
   - Initial Release

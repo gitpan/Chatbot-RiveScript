@@ -1,5 +1,10 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.03  Tue Jan  3 18:33:00 2006
+	- Added search() method.
+	- <bot> variables can be inserted into triggers now (for example having
+		the bot reply to its name no matter what its name is)
+
 0.02	Thu Dec 22 11:28:00 2005
 	- Fixed a regexp bug; now it stops searching when it finds a match
 		(it would cause errors with $1 to $100)

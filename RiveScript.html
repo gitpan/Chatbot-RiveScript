@@ -25,6 +25,7 @@
 		<li><a href="#stream__code_">stream (CODE)</a></li>
 		<li><a href="#sortreplies">sortReplies</a></li>
 		<li><a href="#reply__user_id__message_">reply (USER_ID, MESSAGE)</a></li>
+		<li><a href="#search__string_">search (STRING)</a></li>
 		<li><a href="#setglobal__variable____value______">setGlobal (VARIABLE =&gt; VALUE, ...)</a></li>
 		<li><a href="#setvariable__variable____value______">setVariable (VARIABLE =&gt; VALUE, ...)</a></li>
 		<li><a href="#setsubstitution__before____after______">setSubstitution (BEFORE =&gt; AFTER, ...)</a></li>
@@ -168,6 +169,12 @@ replies will not be matchable because the sort cache hasn't updated.</p>
 <p>Get a reply from the bot. This will return an array. The values of this
 array would be all the replies (i.e. if you use {nextreply} in a response
 to return multiple).</p>
+<p>
+</p>
+<h2><a name="search__string_">search (STRING)</a></h2>
+<p>Search all loaded replies for every trigger that STRING matches. Returns an
+array of results, containing the trigger, what topic it was under, and the
+reference to its file and line number.</p>
 <p>
 </p>
 <h2><a name="setglobal__variable____value______">setGlobal (VARIABLE =&gt; VALUE, ...)</a></h2>
@@ -594,6 +601,10 @@ you said what's up and then I said not much''</p>
 <pre>
   + what is your name
   - I am &lt;bot name&gt;, created by &lt;bot companyname&gt;.</pre>
+<p>This variable can also be used in triggers.</p>
+<pre>
+  + my name is &lt;bot name&gt;
+  - &lt;set name=&lt;bot name&gt;&gt;What a coincidence, that's my name too!</pre>
 <p>
 </p>
 <h2><a name="_get____set_">&lt;get&gt;, &lt;set&gt;</a></h2>
@@ -747,6 +758,11 @@ show themselves yet.</p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
 <pre>
+  Version 0.03
+  - Added search() method.
+  - &lt;bot&gt; variables can be inserted into triggers now (for example having
+    the bot reply to its name no matter what its name is)</pre>
+<pre>
   Version 0.02
   - Fixed a regexp bug; now it stops searching when it finds a match
     (it would cause errors with $1 to $100)
@@ -754,8 +770,7 @@ show themselves yet.</p>
     conditionals.
   - Added &lt;id&gt; tag, useful for objects that need a unique user to work
     with.
-  - Fixed bug that warned about comments that began with more than
-    one set of //</pre>
+  - Fixed bug that lets comments begin with more than one set of //</pre>
 <pre>
   Version 0.01
   - Initial Release</pre>

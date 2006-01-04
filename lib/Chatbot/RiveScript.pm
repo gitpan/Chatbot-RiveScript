@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 sub new {
 	my $proto = shift;
@@ -197,6 +197,9 @@ sub loadFile {
 	my $started = 0;        # Haven't found a trigger yet
 	my $inReply = 0;        # Not in a reply yet
 	my $inCom   = 0;        # Not in commented code
+	my $inObj   = 0;        # In an object.
+	my $objName = '';       # Object's name
+	my $objCode = '';       # Object's source.
 	my $topic   = 'random'; # Default topic
 	my $trigger = '';       # The trigger we're on
 	my $replies = 0;        # -REPLY counter
@@ -206,6 +209,14 @@ sub loadFile {
 	# Go through the file.
 	foreach my $line (@data) {
 		$num++;
+
+		# If in an object...
+		if ($inObj == 1) {
+			if ($line !~ /< object/i) {
+				$objCode .= "$line\n";
+				next;
+			}
+		}
 
 		# Format the line.
 		$self->debug ("Line $num ($inCom): $line");
@@ -249,6 +260,11 @@ sub loadFile {
 				$self->debug ("\tA begin handler");
 				$topic = '__begin__';
 			}
+			elsif ($type eq 'object') {
+				$self->debug ("\tAn object");
+				$objName = $text || 'unknown';
+				$inObj = 1;
+			}
 			else {
 				warn "Unknown label type at $file line $num";
 			}
@@ -258,6 +274,18 @@ sub loadFile {
 			if ($data eq 'topic' || $data eq '/topic' || $data eq 'begin' || $data eq '/begin') {
 				$self->debug ("\tTopic reset!");
 				$topic = 'random';
+			}
+			elsif ($data eq 'object') {
+				# Save the object.
+				my $code = "\$self->setSubroutine ($objName => \\&rscode_$objName);\n\n"
+					. "sub rscode_$objName {\n"
+					. "$objCode\n"
+					. "}\n";
+
+				my $eval = eval $code;
+				$inObj = 0;
+				$objName = '';
+				$objCode = '';
 			}
 			else {
 				warn "Unknown label ender at $file line $num";
@@ -654,6 +682,23 @@ sub intReply {
 			my $regexp = $in;
 			$regexp =~ s~\*~\(\.\*\?\)~g;
 
+			# Run optional modifiers.
+			while ($regexp =~ /\[(.*?)\]/i) {
+				my $o = $1;
+				my @parts = split(/\|/, $o);
+				my @new = ();
+
+				foreach my $word (@parts) {
+					$word = ' ' . $word . ' ';
+					push (@new,$word);
+				}
+
+				push (@new,' ');
+				my $rep = '(' . join ('|',@new) . ')';
+
+				$regexp =~ s/\s*\[(.*?)\]\s*/$rep/g;
+			}
+
 			# Filter in arrays.
 			while ($regexp =~ /\(\@(.*?)\)/i) {
 				my $o = $1;
@@ -956,6 +1001,23 @@ sub search {
 		foreach my $trigger (@{$self->{array}->{$topic}}) {
 			my $regexp = $trigger;
 			$regexp =~ s~\*~\(\.\*\?\)~g;
+
+			# Run optional modifiers.
+			while ($regexp =~ /\[(.*?)\]/i) {
+				my $o = $1;
+				my @parts = split(/\|/, $o);
+				my @new = ();
+
+				foreach my $word (@parts) {
+					$word = ' ' . $word . ' ';
+					push (@new,$word);
+				}
+
+				push (@new,' ');
+				my $rep = '(' . join ('|',@new) . ')';
+
+				$regexp =~ s/\s*\[(.*?)\]\s*/$rep/g;
+			}
 
 			# Filter in arrays.
 			while ($regexp =~ /\(\@(.*?)\)/i) {
@@ -1389,6 +1451,19 @@ that * equals (.*?):
   + my name is *
   - Nice to meet you, <star1>.
 
+B<Optionals:> You can use optional words in a trigger. These words don't have
+to exist in the user's message but they I<can>. Example:
+
+  + what is your [home] phone number
+  - You can call me at 555-5555.
+
+So that would match "I<what is your phone number>" as well as
+"I<what is your home phone number>"
+
+Optionals can have alternations in them too.
+
+  + what (s|is) your [home|office|cell] phone number
+
 B<Arrays:> This is why it's good to define arrays using the !define tag. The
 best way to explain how this works is by example.
 
@@ -1506,7 +1581,28 @@ Always set topic back to "random" to break out of a topic.
 Special macros (Perl routines) can be defined and then utilized in your RiveScript
 code.
 
-B<Define a Macro:> This must be done from the Perl side (oh, darn, RiveScript doesn't
+B<Define a Macro the RiveScript way:> New with version 0.4 is the ability to define objects directly
+within the RiveScript code. This is currently experimental. More often than not it will work without
+a problem. Sometimes, very complex objects fail to create via this way for some reason.
+
+The basic way is to do it like this:
+
+  > object fortune
+    my ($method,$msg) = @_;
+
+    my @fortunes = (
+       'You will be rich and famous',
+       'You will meet a celebrity',
+       'You will go to the moon',
+    );
+
+    return $fortunes [ int(rand(scalar(@fortunes))) ];
+  < object
+
+Note: the B<closing tag> (last line in the above example) is required for objects. An object isn't included until the closing tag
+is found.
+
+B<Define a Macro the Perl way:> This must be done from the Perl side (oh, darn, RiveScript doesn't
 have full control). This is done like so:
 
   # Define a weather lookup macro.
@@ -1709,6 +1805,10 @@ show themselves yet.
 
 =head1 CHANGES
 
+  Version 0.04
+  - Added support for optional parts of the trigger.
+  - Begun support for inline objects to be created.
+
   Version 0.03
   - Added search() method.
   - <bot> variables can be inserted into triggers now (for example having
@@ -1725,6 +1825,14 @@ show themselves yet.
 
   Version 0.01
   - Initial Release
+
+=head1 TO-DO LIST
+
+Here are things I plan to add into the module at a later time.
+
+  From Version 0.04
+  - Allow the ^CONTINUE command to continue ANY command, not just
+    -REPLIES.
 
 =head1 AUTHOR
 

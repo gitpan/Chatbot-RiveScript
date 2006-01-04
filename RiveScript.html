@@ -83,6 +83,7 @@
 	<li><a href="#see_other">SEE OTHER</a></li>
 	<li><a href="#known_bugs">KNOWN BUGS</a></li>
 	<li><a href="#changes">CHANGES</a></li>
+	<li><a href="#todo_list">TO-DO LIST</a></li>
 	<li><a href="#author">AUTHOR</a></li>
 	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
 </ul>
@@ -454,6 +455,16 @@ that * equals (.*?):</p>
 <pre>
   + my name is *
   - Nice to meet you, &lt;star1&gt;.</pre>
+<p><strong>Optionals:</strong> You can use optional words in a trigger. These words don't have
+to exist in the user's message but they <em>can</em>. Example:</p>
+<pre>
+  + what is your [home] phone number
+  - You can call me at 555-5555.</pre>
+<p>So that would match ``<em>what is your phone number</em>'' as well as
+``<em>what is your home phone number</em>''</p>
+<p>Optionals can have alternations in them too.</p>
+<pre>
+  + what (s|is) your [home|office|cell] phone number</pre>
 <p><strong>Arrays:</strong> This is why it's good to define arrays using the !define tag. The
 best way to explain how this works is by example.</p>
 <pre>
@@ -557,7 +568,25 @@ and close a topic is generally as follows:</p>
 <h1><a name="object_macros">OBJECT MACROS</a></h1>
 <p>Special macros (Perl routines) can be defined and then utilized in your RiveScript
 code.</p>
-<p><strong>Define a Macro:</strong> This must be done from the Perl side (oh, darn, RiveScript doesn't
+<p><strong>Define a Macro the RiveScript way:</strong> New with version 0.4 is the ability to define objects directly
+within the RiveScript code. This is currently experimental. More often than not it will work without
+a problem. Sometimes, very complex objects fail to create via this way for some reason.</p>
+<p>The basic way is to do it like this:</p>
+<pre>
+  &gt; object fortune
+    my ($method,$msg) = @_;</pre>
+<pre>
+    my @fortunes = (
+       'You will be rich and famous',
+       'You will meet a celebrity',
+       'You will go to the moon',
+    );</pre>
+<pre>
+    return $fortunes [ int(rand(scalar(@fortunes))) ];
+  &lt; object</pre>
+<p>Note: the <strong>closing tag</strong> (last line in the above example) is required for objects. An object isn't included until the closing tag
+is found.</p>
+<p><strong>Define a Macro the Perl way:</strong> This must be done from the Perl side (oh, darn, RiveScript doesn't
 have full control). This is done like so:</p>
 <pre>
   # Define a weather lookup macro.
@@ -758,6 +787,10 @@ show themselves yet.</p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
 <pre>
+  Version 0.04
+  - Added support for optional parts of the trigger.
+  - Begun support for inline objects to be created.</pre>
+<pre>
   Version 0.03
   - Added search() method.
   - &lt;bot&gt; variables can be inserted into triggers now (for example having
@@ -774,6 +807,15 @@ show themselves yet.</p>
 <pre>
   Version 0.01
   - Initial Release</pre>
+<p>
+</p>
+<hr />
+<h1><a name="todo_list">TO-DO LIST</a></h1>
+<p>Here are things I plan to add into the module at a later time.</p>
+<pre>
+  From Version 0.04
+  - Allow the ^CONTINUE command to continue ANY command, not just
+    -REPLIES.</pre>
 <p>
 </p>
 <hr />

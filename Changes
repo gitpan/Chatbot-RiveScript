@@ -1,5 +1,9 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.04  Wed Jan  4 17:00:00 2006
+	- Added support for optional parts of the trigger.
+	- Begun support for inline objects to be created.
+
 0.03  Tue Jan  3 18:33:00 2006
 	- Added search() method.
 	- <bot> variables can be inserted into triggers now (for example having

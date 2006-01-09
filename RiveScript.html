@@ -787,6 +787,11 @@ show themselves yet.</p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
 <pre>
+  Version 0.05
+  - Fixed a bug with optionals. If they were used at the start or end
+    of a trigger, the trigger became unmatchable. This has been fixed
+    by changing ' ' into '\s*'</pre>
+<pre>
   Version 0.04
   - Added support for optional parts of the trigger.
   - Begun support for inline objects to be created.</pre>

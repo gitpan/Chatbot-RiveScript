@@ -1,5 +1,10 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.05  Mon Jan  9 18:24:00 2006
+	- Fixed a bug with optionals. If they were used at the start or end
+		of a trigger, the trigger became unmatchable. This has been fixed
+		by changing ' ' into '\s*'
+
 0.04  Wed Jan  4 17:00:00 2006
 	- Added support for optional parts of the trigger.
 	- Begun support for inline objects to be created.

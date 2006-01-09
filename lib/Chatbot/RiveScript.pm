@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 sub new {
 	my $proto = shift;
@@ -689,11 +689,11 @@ sub intReply {
 				my @new = ();
 
 				foreach my $word (@parts) {
-					$word = ' ' . $word . ' ';
+					$word = '\s*' . $word . '\s*';
 					push (@new,$word);
 				}
 
-				push (@new,' ');
+				push (@new,'\s*');
 				my $rep = '(' . join ('|',@new) . ')';
 
 				$regexp =~ s/\s*\[(.*?)\]\s*/$rep/g;
@@ -1804,6 +1804,11 @@ I'm sure there are some, as this is a beta release, but none have come to
 show themselves yet.
 
 =head1 CHANGES
+
+  Version 0.05
+  - Fixed a bug with optionals. If they were used at the start or end
+    of a trigger, the trigger became unmatchable. This has been fixed
+    by changing ' ' into '\s*'
 
   Version 0.04
   - Added support for optional parts of the trigger.

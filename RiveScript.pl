@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 
-use lib "./lib";
 use strict;
 use warnings;
 use Chatbot::RiveScript;
@@ -11,14 +10,10 @@ if (@ARGV) {
 	$debug = 1 if $ARGV[0] eq '--debug';
 }
 
+print "Chatbot::RiveScript $Chatbot::RiveScript::VERSION Loaded\n";
+
 # Create a new RS interpreter.
 my $rs = new Chatbot::RiveScript (debug => $debug);
-
-# Define a test macro.
-$rs->setSubroutine (test => \&test);
-
-# This macro is for getting uservars and printing them.
-$rs->setSubroutine (uservars => \&uservars);
 
 # Load in some RS files.
 $rs->loadDirectory ("./replies");
@@ -35,30 +30,4 @@ while(1) {
 	my @reply = $rs->reply ('localhost',$in);
 
 	print "Out> $_\n" foreach(@reply);
-}
-
-sub test {
-	my ($method,$data) = @_;
-
-	print "\n"
-		. "test object called! method = $method; data = $data\n\n";
-
-	return "random number: " . int(rand(99999));
-}
-sub uservars {
-	my ($method,$data) = @_;
-
-	# Get uservars for 'localhost'
-	print "\nGetting uservars for localhost\n";
-
-	my $vars = $rs->getUservars ('localhost');
-
-	foreach my $key (keys %{$vars}) {
-		print "$key = $vars->{$key}\n";
-	}
-
-	print "\n";
-
-	# Return blank.
-	return '';
 }

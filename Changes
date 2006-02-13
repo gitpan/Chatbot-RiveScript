@@ -1,5 +1,9 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.06  Mon Feb 13 06:56:00 2006
+	- Extended ^CONTINUE to cover more commands
+	- Revised POD
+
 0.05  Mon Jan  9 18:24:00 2006
 	- Fixed a bug with optionals. If they were used at the start or end
 		of a trigger, the trigger became unmatchable. This has been fixed

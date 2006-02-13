@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 sub new {
 	my $proto = shift;
@@ -205,6 +205,8 @@ sub loadFile {
 	my $replies = 0;        # -REPLY counter
 	my $conds   = 0;        # *CONDITION counter
 	my $num     = 0;        # Line numbers.
+	my $conc    = 0;        # Concetanate the last command (0.06)
+	my $lastCmd = '';       # The last command used (0.06)
 
 	# Go through the file.
 	foreach my $line (@data) {
@@ -227,6 +229,9 @@ sub loadFile {
 		# Separate the command from its data.
 		my ($command,$data) = split(/\s+/, $line, 2);
 
+		# Filter in hard spaces.
+		$data =~ s/\\s/ /g if defined $data;
+
 		# Check for comment commands...
 		if ($command =~ /^\/\//) {
 			# Single comment. Skip it.
@@ -247,6 +252,49 @@ sub loadFile {
 
 		# Skip comments.
 		next if $inCom;
+
+		# Concatenate previous commands.
+		if ($command eq '^') {
+			$self->debug ("^ Command - Command Continuation");
+
+			if ($lastCmd =~ /^\! global (.*?)$/i) {
+				my $var = $1;
+				$self->{$var} .= $data;
+			}
+			elsif ($lastCmd =~ /^\! var (.*?)$/i) {
+				my $var = $1;
+				$self->{botvars}->{$var} .= $data;
+			}
+			elsif ($lastCmd =~ /^\! array (.*?)$/i) {
+				my $var = $1;
+				if ($data =~ /\|/) {
+					my @words = split(/\|/, $data);
+					push (@{$self->{botarrays}->{$var}}, @words);
+				}
+				else {
+					my @words = split(/\s+/, $data);
+					push (@{$self->{botarrays}->{$var}}, @words);
+				}
+			}
+			elsif ($lastCmd =~ /^\+ (.*?)$/i) {
+				my $tr = $1;
+				$trigger = $tr . $data;
+			}
+			elsif ($lastCmd =~ /^\% (.*?)$/i) {
+				my $that = $1;
+				$topic .= $data;
+			}
+			elsif ($lastCmd =~ /^\@ (.*?)$/i) {
+				my $at = $1;
+				$self->{replies}->{$topic}->{$trigger}->{redirect} .= $data;
+			}
+			else {
+				# Normal behavior
+				$self->{replies}->{$topic}->{$trigger}->{$replies} .= $data;
+			}
+
+			next;
+		}
 
 		# Go through actual commands.
 		if ($command eq '>') {
@@ -316,6 +364,8 @@ sub loadFile {
 					next;
 				}
 
+				$lastCmd = "! global $what";
+
 				# Set this top-level global.
 				if ($is ne 'undef') {
 					$self->debug ("\tSet global $what = $is");
@@ -328,6 +378,7 @@ sub loadFile {
 			}
 			elsif ($type eq 'var') {
 				# Set a botvariable.
+				$lastCmd = "! var $what";
 				if ($is ne 'undef') {
 					$self->debug ("\tSet botvar $what = $is");
 					$self->{botvars}->{$what} = $is;
@@ -339,6 +390,7 @@ sub loadFile {
 			}
 			elsif ($type eq 'array') {
 				# An array.
+				$lastCmd = "! array $what";
 
 				# Delete the array?
 				if ($is eq 'undef') {
@@ -398,6 +450,7 @@ sub loadFile {
 			# Reply trigger.
 			$inReply = 1;
 			$trigger = $data;
+			$lastCmd = "+ $trigger";
 			$self->debug ("\tTrigger: $trigger");
 
 			# Set the trigger under its topic.
@@ -414,10 +467,13 @@ sub loadFile {
 			}
 
 			# Set the topic to "__that__$data"
+			$lastCmd = "\% $data";
 			$topic = "__that__$data";
 		}
 		elsif ($command eq '-') {
 			$self->debug ("- Command - Response!");
+
+			$lastCmd = ''; # -Reply is the default usage for ^Continue
 
 			if ($inReply != 1) {
 				# Error.
@@ -431,10 +487,6 @@ sub loadFile {
 			$self->{replies}->{$topic}->{$trigger}->{$replies} = $data;
 			$self->{syntax}->{$topic}->{$trigger}->{$replies}->{ref} = "$file line $num";
 		}
-		elsif ($command eq '^') {
-			$self->debug ("^ Command - Reply Continuation");
-			$self->{replies}->{$topic}->{$trigger}->{$replies} .= ' ' . $data;
-		}
 		elsif ($command eq '@') {
 			$self->debug ("\@ Command - Redirect");
 
@@ -443,6 +495,8 @@ sub loadFile {
 				warn "Syntax error at $file line $num";
 				next;
 			}
+
+			$lastCmd = "\@ $data";
 
 			$self->{replies}->{$topic}->{$trigger}->{redirect} = $data;
 			$self->{syntax}->{$topic}->{$trigger}->{redirect}->{ref} = "$file line $num";
@@ -696,7 +750,7 @@ sub intReply {
 				push (@new,'\s*');
 				my $rep = '(' . join ('|',@new) . ')';
 
-				$regexp =~ s/\s*\[(.*?)\]\s*/$rep/g;
+				$regexp =~ s/\s*\[(.*?)\]\s*/$rep/i;
 			}
 
 			# Filter in arrays.
@@ -707,7 +761,9 @@ sub intReply {
 				if (exists $self->{botarrays}->{$name}) {
 					$rep = '(' . join ('|', @{$self->{botarrays}->{$name}}) . ')';
 				}
-				$regexp =~ s/\(\@$o\)/$rep/ig;
+				$regexp =~ s/\(\@(.*?)\)/$rep/i;
+
+				print "Filtered in array $rep\n";
 			}
 
 			# Filter in botvariables.
@@ -716,7 +772,7 @@ sub intReply {
 				my $value = $self->{botvars}->{$o};
 				$value =~ s/[^A-Za-z0-9 ]//g;
 				$value = lc($value);
-				$regexp =~ s/<bot $o>/$value/ig;
+				$regexp =~ s/<bot (.*?)>/$value/i;
 			}
 
 			# print "\tComparing $msg with $regexp\n";
@@ -987,6 +1043,9 @@ sub intReply {
 		return @returned;
 	}
 
+	# Filter in line breaks.
+	$reply =~ s/\\n/\n/g;
+
 	return $reply;
 }
 
@@ -1168,7 +1227,7 @@ Chatbot::RiveScript - Rendering Intelligence Very Easily
 
   # Grab a response.
   my @reply = $rs->reply ('localhost','Hello RiveScript!');
-  # print $reply[0] . "\n";
+  print $reply[0] . "\n";
 
 =head1 DESCRIPTION
 
@@ -1187,7 +1246,7 @@ Creates a new Chatbot::RiveScript instance. Pass in any defaults here.
 
 =head2 setSubroutine (OBJECT_NAME => CODEREF)
 
-Define a macro (see Object Macros)
+Define a macro (see L<"OBJECT MACROS">)
 
 =head2 loadDirectory (DIRECTORY)
 
@@ -1242,7 +1301,7 @@ Set a user variable (alias for <set var=value>)
 
 Get all variables for a user, returns a hash reference. (alias for <get var>
 for every variable). If you don't provide a USER_ID, or provide '__rivescript__'
-(see Reserved Variables), it will return an array reference of hash references,
+(see L<"RESERVED VARIABLES">), it will return an array reference of hash references,
 to get variables of all users.
 
 =head1 PRIVATE METHODS
@@ -1312,11 +1371,11 @@ The supported types are as follows:
   array  - An array
   sub    - A substitution pattern
 
-=item B<(LT) and (GT) (Label)>
+=item B<E<lt> and E<gt> (Label)>
 
-The < and > commands are for defining labels. A label is used to treat
-a part of code differently. Currently there are two uses for labels:
-B<begin> and B<topic>. Example usage:
+The E<lt> and E<gt> commands are for defining labels. A label is used to treat
+a part of code differently. Currently there are three uses for labels:
+B<begin>, B<topic>, and B<object>. Example usage:
 
   // Define a topic
   > topic some_topic_name
@@ -1339,7 +1398,7 @@ The user would say "hello bot" only to get a "Hello human." back.
 =item B<% (Previous)>
 
 The % command is for drawing a user back to complete a thought. You
-might say it's sort of like <that> in AIML. Example:
+might say it's sort of like E<lt>thatE<gt> in AIML. Example:
 
   + ask me a question
   - Do you have any pets?
@@ -1360,16 +1419,53 @@ other uses that we'll get into later.
 
 =item B<^ (Continue)>
 
+The ^Continue command is for extending the previous command down a line.
+Normally, this would only reply to -REPLY but in B<Version 0.06> this
+has expanded to handle extensions of multiple types of commands.
+
+The commands that can be continued with ^Continue:
+
+  ! global
+  ! var
+  ! array
+  + trigger
+  % previous
+  - response
+  @ redirection
+
 Sometimes your -REPLY is too long to fit on one line, and you don't like
 the idea of having a horizontal scrollbar. The ^ command will continue on
 from the last -REPLY. For example:
 
   + tell me a poem
-  - Little Miss Muffit sat on her tuffet
-  ^ in a nonchalant sort of way.
-  ^ With her forcefield around her,
-  ^ the Spider, the bounder,
+  - Little Miss Muffit sat on her tuffet\s
+  ^ in a nonchalant sort of way.\s
+  ^ With her forcefield around her,\s
+  ^ the Spider, the bounder,\s
   ^ is not in the picture today.
+
+Here are some examples of the other uses of ^Continue new with version
+0.06:
+
+  ! array colors  = red blue green yellow cyan fuchsia
+  ^ white black gray grey orange pink
+  ^ turqoise magenta gold silver
+
+  ! var quote = How much wood would a woodchuck
+  ^ chuck if a woodchuck could chuck wood?
+
+  + how much wood would a woodchuck\s
+  ^ chuck if a woodchuck could chuck wood
+  - A whole forest. ;)
+
+  + how much wood
+  @ how much wood would a woodchuck\s
+  ^ chuck if a woodchuck could chuck wood
+
+B<Change Note:> In version 0.06, a continuation of a -REPLY no longer assumes
+a space between the parts of the response. For an example, look up at the
+"tell me a poem" example just above. You now need to include a \s (see L<"TAGS">)
+to include a white space.
 
 =item B<@ (Redirect)>
 
@@ -1383,7 +1479,7 @@ feel like making your main trigger handle all of them.
   + people around here call me *
   @ my name is <star1>
 
-Redirections can also be used inline. See the "TAGS" section for more details.
+Redirections can also be used inline. See the L<"TAGS"> section for more details.
 
 =item B<* (Conditions)>
 
@@ -1429,7 +1525,7 @@ The comment syntax is //, as it is in other programming languages. Also,
 The RiveScript engine was designed for your RiveScript brain to hold most of the
 control. As little programming on the Perl side as possible has made it so that
 your RiveScript can define its own variables and handle what it wants to. See
-"A Good Brain" for tips on how to approach this.
+L<"A GOOD BRAIN"> for tips on how to approach this.
 
 =head1 COMPLEXITIES OF THE TRIGGER
 
@@ -1445,7 +1541,7 @@ B<Alternations:> You can use alternations in the triggers like so:
   + what (s|is) your (home|office|cell) phone number
 
 Anything inside of parenthesis, or anything matched by asterisks, can be
-obtained through the tags <star1> to <star100>. For example (keeping in mind
+obtained through the tags E<lt>star1E<gt> to E<lt>star100E<gt>. For example (keeping in mind
 that * equals (.*?):
 
   + my name is *
@@ -1561,7 +1657,7 @@ The topic name should be unique, and only one word.
 
 B<The Default Topic:> The default topic name is "random"
 
-B<Setting a Topic:> To set a topic, use the {topic} tag (see "Tags" below). Example:
+B<Setting a Topic:> To set a topic, use the {topic} tag (see L<"TAGS"> below). Example:
 
   + i hate you
   - You're not very nice. I'm going to make you apologize.{topic=apology}
@@ -1581,9 +1677,18 @@ Always set topic back to "random" to break out of a topic.
 Special macros (Perl routines) can be defined and then utilized in your RiveScript
 code.
 
-B<Define a Macro the RiveScript way:> New with version 0.4 is the ability to define objects directly
-within the RiveScript code. This is currently experimental. More often than not it will work without
-a problem. Sometimes, very complex objects fail to create via this way for some reason.
+=head2 Inline Objects
+
+New with version 0.04 is the ability to define objects directly within the RiveScript code. Keep in mind
+that the code for your object is evaluated local to Chatbot::RiveScript. That being said, basic tips to
+follow to make an object work:
+
+  1) If it uses any module besides strict and warnings, that module must be explicitely
+     declared within your object with a 'use' statement.
+  2) If your object refers to any variables global to your main program, 'main::' must
+     be prepended (i.e. '$main::hashref->{key}')
+  3) If your object refers to a subroutine of your main program, 'main::' must be prepended
+     (i.e. '&main::reload()')
 
 The basic way is to do it like this:
 
@@ -1602,13 +1707,20 @@ The basic way is to do it like this:
 Note: the B<closing tag> (last line in the above example) is required for objects. An object isn't included until the closing tag
 is found.
 
-B<Define a Macro the Perl way:> This must be done from the Perl side (oh, darn, RiveScript doesn't
-have full control). This is done like so:
+=head2 Define an Object from Perl
+
+This is done like so:
 
   # Define a weather lookup macro.
   $rs->setSubroutine (weather => \&weather_lookup);
 
-B<Use a Macro:> You can use a macro within a reply such as this example:
+The code of the subroutine would be basically the same as it would be in the example for Inline Objects.
+Basically, think of the "E<gt> object fortune" as "sub fortune {" and the "E<lt> object" as "}" and it's a little
+easier to visualize. ;)
+
+=head2 Call an Object
+
+You can use a macro within a reply such as this example:
 
   + give me the local weather for *
   - Weather for &weather.cityname(<star1>):\n\n
@@ -1627,22 +1739,22 @@ macro call.
 
 Special tags can be inserted into replies and redirections. They are as follows:
 
-=head2 <star>, <star1> - <star100>
+=head2 E<lt>starE<gt>, E<lt>star1E<gt> - E<lt>star100E<gt>
 
 These tags will insert the values of $1 to $100, as matched in the regexp, into
 the reply. They go in order from left to right. <star> is an alias for <star1>.
 
-=head2 <input1> - <input9>; <reply1> - <reply9>
+=head2 E<lt>input1E<gt> - E<lt>input9E<gt>; E<lt>reply1E<gt> - E<lt>reply9E<gt>
 
 Inserts the last 1 to 9 things the user said, and the last 1 to 9 things the bot
 said, respectively. Good for things like "You said hello and then I said hi and then
 you said what's up and then I said not much"
 
-=head2 <id>
+=head2 E<lt>idE<gt>
 
 Inserts the user's ID.
 
-=head2 <bot>
+=head2 E<lt>botE<gt>
 
 Insert a bot variable (defined with B<! var>).
 
@@ -1654,7 +1766,7 @@ This variable can also be used in triggers.
   + my name is <bot name>
   - <set name=<bot name>>What a coincidence, that's my name too!
 
-=head2 <get>, <set>
+=head2 E<lt>getE<gt>, E<lt>setE<gt>
 
 Get and set a user variable. These are local variables for each user.
 
@@ -1666,7 +1778,7 @@ Get and set a user variable. These are local variables for each user.
 
 =head2 {topic=...}
 
-The topic tag. This will set the user's topic to something else (see TOPICS). Only
+The topic tag. This will set the user's topic to something else (see L<"TOPICS">). Only
 one of these should be in a response, and in the case of duplicates only the first
 one is evaluated.
 
@@ -1713,6 +1825,19 @@ WILL MAKE THE TEXT UPPERCASE.
 =head2 {lowercase}...{/lowercase}
 
 will make the text lowercase.
+
+=head2 \s
+
+(New with Version 0.06) Inserts a white space. Simple as that.
+
+In version 0.06, reply continuations (- ^) would insert a space automatically
+when combining a reply. This is no longer the case. The \s tag must be included
+if you want spaces in the continuation.
+
+=head2 \n
+
+(New with Version 0.06) Inserts a newline. Note that this only happens when
+you request a B<reply()> from the module.
 
 =head1 RESERVED VARIABLES
 
@@ -1800,10 +1925,13 @@ You might want to take a look at L<Chatbot::Alpha>, this module's predecessor.
 
 =head1 KNOWN BUGS
 
-I'm sure there are some, as this is a beta release, but none have come to
-show themselves yet.
+None yet known.
 
 =head1 CHANGES
+
+  Version 0.06
+  - Extended ^CONTINUE to cover more commands
+  - Revised POD
 
   Version 0.05
   - Fixed a bug with optionals. If they were used at the start or end
@@ -1833,11 +1961,7 @@ show themselves yet.
 
 =head1 TO-DO LIST
 
-Here are things I plan to add into the module at a later time.
-
-  From Version 0.04
-  - Allow the ^CONTINUE command to continue ANY command, not just
-    -REPLIES.
+Feel free to offer any ideas. ;)
 
 =head1 AUTHOR
 
@@ -1846,7 +1970,7 @@ Here are things I plan to add into the module at a later time.
 =head1 COPYRIGHT AND LICENSE
 
     Chatbot::RiveScript - Rendering Intelligence Very Easily
-    Copyright (C) 2005  Cerone J. Kirsle
+    Copyright (C) 2006  Cerone J. Kirsle
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

@@ -55,13 +55,17 @@
 
 /* Set some botvariables */
 
-! var name = Casey Rive
-! var age  = 14
-! var sex  = male
+! var name  = Casey Rive
+! var age   = 14
+! var sex   = male
+! var quote = How much wood would a woodchuck
+	^ chuck if a woodchuck could chuck wood?
 
 /* Set some arrays */
 
 ! array colors  = red blue green yellow cyan fuchsia
+	^ white black gray grey orange pink
+	^ turqoise magenta gold silver
 ! array numbers = 0 1 2 3 4 5 6 7 8 9
 
 // Delete the numbers array.

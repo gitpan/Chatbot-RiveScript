@@ -52,6 +52,13 @@
 	<li><a href="#begin_statement">BEGIN STATEMENT</a></li>
 	<li><a href="#topics">TOPICS</a></li>
 	<li><a href="#object_macros">OBJECT MACROS</a></li>
+	<ul>
+
+		<li><a href="#inline_objects">Inline Objects</a></li>
+		<li><a href="#define_an_object_from_perl">Define an Object from Perl</a></li>
+		<li><a href="#call_an_object">Call an Object</a></li>
+	</ul>
+
 	<li><a href="#tags">TAGS</a></li>
 	<ul>
 
@@ -69,6 +76,8 @@
 		<li><a href="#_sentence______sentence_">{sentence}...{/sentence}</a></li>
 		<li><a href="#_uppercase______uppercase_">{uppercase}...{/uppercase}</a></li>
 		<li><a href="#_lowercase______lowercase_">{lowercase}...{/lowercase}</a></li>
+		<li><a href="#_s">\s</a></li>
+		<li><a href="#_n">\n</a></li>
 	</ul>
 
 	<li><a href="#reserved_variables">RESERVED VARIABLES</a></li>
@@ -121,7 +130,7 @@
 <pre>
   # Grab a response.
   my @reply = $rs-&gt;reply ('localhost','Hello RiveScript!');
-  # print $reply[0] . &quot;\n&quot;;</pre>
+  print $reply[0] . &quot;\n&quot;;</pre>
 <p>
 </p>
 <hr />
@@ -142,7 +151,7 @@ Markup Language).</p>
 <p>
 </p>
 <h2><a name="setsubroutine__object_name____coderef_">setSubroutine (OBJECT_NAME =&gt; CODEREF)</a></h2>
-<p>Define a macro (see Object Macros)</p>
+<p>Define a macro (see <a href="#object_macros">OBJECT MACROS</a>)</p>
 <p>
 </p>
 <h2><a name="loaddirectory__directory_">loadDirectory (DIRECTORY)</a></h2>
@@ -197,7 +206,7 @@ reference to its file and line number.</p>
 <h2><a name="getuservars__user_id_">getUservars (USER_ID)</a></h2>
 <p>Get all variables for a user, returns a hash reference. (alias for &lt;get var&gt;
 for every variable). If you don't provide a USER_ID, or provide '__rivescript__'
-(see Reserved Variables), it will return an array reference of hash references,
+(see <a href="#reserved_variables">RESERVED VARIABLES</a>), it will return an array reference of hash references,
 to get variables of all users.</p>
 <p>
 </p>
@@ -276,12 +285,12 @@ to define variables and arrays. Their format is as follows:
   sub    - A substitution pattern</pre>
 </dd>
 <p></p>
-<dt><strong><a name="item_and"><strong>(LT) and (GT) (Label)</strong></a></strong><br />
+<dt><strong><a name="item__3c_and__3e__28label_29"><strong>&lt; and &gt; (Label)</strong></a></strong><br />
 </dt>
 <dd>
 The &lt; and &gt; commands are for defining labels. A label is used to treat
-a part of code differently. Currently there are two uses for labels:
-<strong>begin</strong> and <strong>topic</strong>. Example usage:
+a part of code differently. Currently there are three uses for labels:
+<strong>begin</strong>, <strong>topic</strong>, and <strong>object</strong>. Example usage:
 </dd>
 <dd>
 <pre>
@@ -348,18 +357,69 @@ other uses that we'll get into later.
 <dt><strong><a name="item__5e__28continue_29"><strong>^ (Continue)</strong></a></strong><br />
 </dt>
 <dd>
-Sometimes your -REPLY is too long to fit on one line, and you don't like
+The ^Continue command is for extending the previous command down a line.
+Normally, this would only reply to -REPLY but in <strong>Version 0.06</strong> this
+has expanded to handle extensions of multiple types of commands.
+</dd>
+<dd>
+<p>The commands that can be continued with ^Continue:</p>
+</dd>
+<dd>
+<pre>
+  ! global
+  ! var
+  ! array
+  + trigger
+  % previous
+  - response
+  @ redirection</pre>
+</dd>
+<dd>
+<p>Sometimes your -REPLY is too long to fit on one line, and you don't like
 the idea of having a horizontal scrollbar. The ^ command will continue on
-from the last -REPLY. For example:
+from the last -REPLY. For example:</p>
 </dd>
 <dd>
 <pre>
   + tell me a poem
-  - Little Miss Muffit sat on her tuffet
-  ^ in a nonchalant sort of way.
-  ^ With her forcefield around her,
-  ^ the Spider, the bounder,
+  - Little Miss Muffit sat on her tuffet\s
+  ^ in a nonchalant sort of way.\s
+  ^ With her forcefield around her,\s
+  ^ the Spider, the bounder,\s
   ^ is not in the picture today.</pre>
+</dd>
+<dd>
+<p>Here are some examples of the other uses of ^Continue new with version
+0.06:</p>
+</dd>
+<dd>
+<pre>
+  ! array colors  = red blue green yellow cyan fuchsia
+  ^ white black gray grey orange pink
+  ^ turqoise magenta gold silver</pre>
+</dd>
+<dd>
+<pre>
+  ! var quote = How much wood would a woodchuck
+  ^ chuck if a woodchuck could chuck wood?</pre>
+</dd>
+<dd>
+<pre>
+  + how much wood would a woodchuck\s
+  ^ chuck if a woodchuck could chuck wood
+  - A whole forest. ;)</pre>
+</dd>
+<dd>
+<pre>
+  + how much wood
+  @ how much wood would a woodchuck\s
+  ^ chuck if a woodchuck could chuck wood</pre>
+</dd>
+<dd>
+<p><strong>Change Note:</strong> In version 0.06, a continuation of a -REPLY no longer assumes
+a space between the parts of the response. For an example, look up at the
+``tell me a poem'' example just above. You now need to include a \s (see <a href="#tags">TAGS</a>)
+to include a white space.</p>
 </dd>
 <p></p>
 <dt><strong><a name="item__40__28redirect_29"><strong>@ (Redirect)</strong></a></strong><br />
@@ -380,7 +440,7 @@ feel like making your main trigger handle all of them.
   @ my name is &lt;star1&gt;</pre>
 </dd>
 <dd>
-<p>Redirections can also be used inline. See the ``TAGS'' section for more details.</p>
+<p>Redirections can also be used inline. See the <a href="#tags">TAGS</a> section for more details.</p>
 </dd>
 <p></p>
 <li><strong><a name="item__28conditions_29"><strong>* (Conditions)</strong></a></strong><br />
@@ -436,7 +496,7 @@ The comment syntax is //, as it is in other programming languages. Also,
 <p>The RiveScript engine was designed for your RiveScript brain to hold most of the
 control. As little programming on the Perl side as possible has made it so that
 your RiveScript can define its own variables and handle what it wants to. See
-``A Good Brain'' for tips on how to approach this.</p>
+<a href="#a_good_brain">A GOOD BRAIN</a> for tips on how to approach this.</p>
 <p>
 </p>
 <hr />
@@ -549,7 +609,7 @@ and close a topic is generally as follows:</p>
   &lt; topic</pre>
 <p>The topic name should be unique, and only one word.</p>
 <p><strong>The Default Topic:</strong> The default topic name is ``random''</p>
-<p><strong>Setting a Topic:</strong> To set a topic, use the {topic} tag (see ``Tags'' below). Example:</p>
+<p><strong>Setting a Topic:</strong> To set a topic, use the {topic} tag (see <a href="#tags">TAGS</a> below). Example:</p>
 <pre>
   + i hate you
   - You're not very nice. I'm going to make you apologize.{topic=apology}</pre>
@@ -568,9 +628,19 @@ and close a topic is generally as follows:</p>
 <h1><a name="object_macros">OBJECT MACROS</a></h1>
 <p>Special macros (Perl routines) can be defined and then utilized in your RiveScript
 code.</p>
-<p><strong>Define a Macro the RiveScript way:</strong> New with version 0.4 is the ability to define objects directly
-within the RiveScript code. This is currently experimental. More often than not it will work without
-a problem. Sometimes, very complex objects fail to create via this way for some reason.</p>
+<p>
+</p>
+<h2><a name="inline_objects">Inline Objects</a></h2>
+<p>New with version 0.04 is the ability to define objects directly within the RiveScript code. Keep in mind
+that the code for your object is evaluated local to Chatbot::RiveScript. That being said, basic tips to
+follow to make an object work:</p>
+<pre>
+  1) If it uses any module besides strict and warnings, that module must be explicitely
+     declared within your object with a 'use' statement.
+  2) If your object refers to any variables global to your main program, 'main::' must
+     be prepended (i.e. '$main::hashref-&gt;{key}')
+  3) If your object refers to a subroutine of your main program, 'main::' must be prepended
+     (i.e. '&amp;main::reload()')</pre>
 <p>The basic way is to do it like this:</p>
 <pre>
   &gt; object fortune
@@ -586,12 +656,20 @@ a problem. Sometimes, very complex objects fail to create via this way for some 
   &lt; object</pre>
 <p>Note: the <strong>closing tag</strong> (last line in the above example) is required for objects. An object isn't included until the closing tag
 is found.</p>
-<p><strong>Define a Macro the Perl way:</strong> This must be done from the Perl side (oh, darn, RiveScript doesn't
-have full control). This is done like so:</p>
+<p>
+</p>
+<h2><a name="define_an_object_from_perl">Define an Object from Perl</a></h2>
+<p>This is done like so:</p>
 <pre>
   # Define a weather lookup macro.
   $rs-&gt;setSubroutine (weather =&gt; \&amp;weather_lookup);</pre>
-<p><strong>Use a Macro:</strong> You can use a macro within a reply such as this example:</p>
+<p>The code of the subroutine would be basically the same as it would be in the example for Inline Objects.
+Basically, think of the ``&gt; object fortune'' as ``sub fortune {'' and the ``&lt; object'' as ``}'' and it's a little
+easier to visualize. ;)</p>
+<p>
+</p>
+<h2><a name="call_an_object">Call an Object</a></h2>
+<p>You can use a macro within a reply such as this example:</p>
 <pre>
   + give me the local weather for *
   - Weather for &amp;weather.cityname(&lt;star1&gt;):\n\n
@@ -647,7 +725,7 @@ you said what's up and then I said not much''</p>
 <p>
 </p>
 <h2><a name="_topic_____">{topic=...}</a></h2>
-<p>The topic tag. This will set the user's topic to something else (see TOPICS). Only
+<p>The topic tag. This will set the user's topic to something else (see <a href="#topics">TOPICS</a>). Only
 one of these should be in a response, and in the case of duplicates only the first
 one is evaluated.</p>
 <p>
@@ -694,6 +772,18 @@ in the final response of the bot; the changes are made silently.</p>
 </p>
 <h2><a name="_lowercase______lowercase_">{lowercase}...{/lowercase}</a></h2>
 <p>will make the text lowercase.</p>
+<p>
+</p>
+<h2><a name="_s">\s</a></h2>
+<p>(New with Version 0.06) Inserts a white space. Simple as that.</p>
+<p>In version 0.06, reply continuations (- ^) would insert a space automatically
+when combining a reply. This is no longer the case. The \s tag must be included
+if you want spaces in the continuation.</p>
+<p>
+</p>
+<h2><a name="_n">\n</a></h2>
+<p>(New with Version 0.06) Inserts a newline. Note that this only happens when
+you request a <strong>reply()</strong> from the module.</p>
 <p>
 </p>
 <hr />
@@ -780,12 +870,15 @@ decide if it should give a reply.</p>
 </p>
 <hr />
 <h1><a name="known_bugs">KNOWN BUGS</a></h1>
-<p>I'm sure there are some, as this is a beta release, but none have come to
-show themselves yet.</p>
+<p>None yet known.</p>
 <p>
 </p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
+<pre>
+  Version 0.06
+  - Extended ^CONTINUE to cover more commands
+  - Revised POD</pre>
 <pre>
   Version 0.05
   - Fixed a bug with optionals. If they were used at the start or end
@@ -816,11 +909,7 @@ show themselves yet.</p>
 </p>
 <hr />
 <h1><a name="todo_list">TO-DO LIST</a></h1>
-<p>Here are things I plan to add into the module at a later time.</p>
-<pre>
-  From Version 0.04
-  - Allow the ^CONTINUE command to continue ANY command, not just
-    -REPLIES.</pre>
+<p>Feel free to offer any ideas. ;)</p>
 <p>
 </p>
 <hr />
@@ -833,7 +922,7 @@ show themselves yet.</p>
 <h1><a name="copyright_and_license">COPYRIGHT AND LICENSE</a></h1>
 <pre>
     Chatbot::RiveScript - Rendering Intelligence Very Easily
-    Copyright (C) 2005  Cerone J. Kirsle</pre>
+    Copyright (C) 2006  Cerone J. Kirsle</pre>
 <pre>
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

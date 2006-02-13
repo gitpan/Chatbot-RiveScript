@@ -216,6 +216,25 @@
 - Your <star2> is <star1>, silly!
 
 /* ##############################
+   ## Follow-up on ^ var conc. ##
+   ############################## */
+
++ what is your favorite quote
+- "<bot quote>"
+
+/* ##############################
+   ## Test trigger conc.       ##
+   ############################## */
+
++ how much wood would a woodchuck\s
+^ chuck if a woodchuck could chuck wood
+- A whole forest. ;)
+
++ how much wood
+@ how much wood would a woodchuck\s
+^ chuck if a woodchuck could chuck wood
+
+/* ##############################
    ## Test Topics              ##
    ############################## */
 

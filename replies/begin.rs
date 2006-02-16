@@ -14,7 +14,7 @@
 
 	// There will be a 50/50 chance he won't allow it
 	+ request
-	- <font color="red">{ok}</font>
+	- {ok}
 //	- I'm not allowing your request right now. Try again. ;)
 
 < begin

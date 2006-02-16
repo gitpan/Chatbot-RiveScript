@@ -10,6 +10,17 @@
 ! global split_sentences = 1
 ! global sentence_splitters = . ! ? ;
 
+/* Person Substitutions */
+! person i     = you
+! person my    = your
+! person mine  = yours
+! person me    = you
+! person am    = are
+! person you   = I
+! person your  = my
+! person yours = mine
+! person are   = am
+
 /* Set some message substitutions */
 
 ! sub i'm = i am

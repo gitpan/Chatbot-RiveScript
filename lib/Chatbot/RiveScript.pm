@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 sub new {
 	my $proto = shift;
@@ -22,6 +22,7 @@ sub new {
 		streamcache => undef, # For streaming replies in
 		botvars     => {},    # Bot variables (! var botname = Casey)
 		substitutions => {},  # Substitutions (! sub don't = do not)
+		person      => {},    # 1st/2nd person substitutions
 		uservars    => {},    # User variables
 		users       => {},    # Temporary things
 		botarrays   => {},    # Bot arrays
@@ -34,6 +35,17 @@ sub new {
 		sentence_splitters => '! . ? ;', # The sentence-splitters.
 		@_,
 	};
+
+	# Set some environmental variables.
+	$self->{botvars}->{ENV_OS}         = $^O;
+	$self->{botvars}->{ENV_APPVERSION} = $VERSION;
+	$self->{botvars}->{ENV_APPNAME}    = "Chatbot::RiveScript/$VERSION";
+
+	# Input all Perl's env vars.
+	foreach my $var (keys %ENV) {
+		my $lab = 'ENV_SYS_' . $var;
+		$self->{botvars}->{$lab} = $ENV{$var};
+	}
 
 	bless ($self,$class);
 	return $self;
@@ -389,6 +401,17 @@ sub loadFile {
 				}
 			}
 			elsif ($type eq 'var') {
+				# Can't overwrite reserved variables.
+				my $err = undef;
+				if ($what =~ /^env_/i) {
+					$err = "Can't modify an environmental variable!";
+				}
+
+				if ($err) {
+					warn "$err";
+					next;
+				}
+
 				# Set a botvariable.
 				$lastCmd = "! var $what";
 				if ($is ne 'undef') {
@@ -437,6 +460,18 @@ sub loadFile {
 				else {
 					$self->debug ("\tDeleting substitution $what");
 					delete $self->{substitutions}->{$what};
+				}
+			}
+			elsif ($type eq 'person') {
+				# Person substitutions.
+
+				if ($is ne 'undef') {
+					$self->debug ("\tSet person $what = $is");
+					$self->{person}->{$what} = $is;
+				}
+				else {
+					$self->debug ("\tDeleting person $what");
+					delete $self->{person}->{$what};
 				}
 			}
 			else {
@@ -850,23 +885,140 @@ sub intReply {
 						$cond =~ s/\s$//g;
 						$happens =~ s/^\s//g;
 
-						my ($var,$value) = split(/=/, $cond, 2);
+						# Find out what type of condition this is.
+						if ($cond =~ /^(.*?)(=|!=|<=|>=|<|>|\?)(.*?)$/i) {
+							my ($var,$type,$value) = ($1,$2,$3);
 
-						# Check variables.
-						if (exists $self->{botvars}->{$var} || exists $self->{uservars}->{$id}->{$var}) {
-							if (exists $self->{botvars}->{$var}) {
-								if (($value =~ /[^0-9]/ && $self->{botvars}->{$var} eq $value) ||
-								($self->{botvars}->{$var} eq $value)) {
-									$reply = $happens;
-								}
+							$var =~ s/\s+$//g; $var =~ s/^\s+//g;
+							$value =~ s/\s+$//g; $value =~ s/^\s+//g;
+
+							# If this is specifically a botvariable...
+							my $isBotVar = 0;
+							my $checkUser = 1;
+							if ($var =~ /^\#/) {
+								$isBotVar = 1;
+								$var =~ s/^\#//g;
 							}
-							else {
-								if (($value =~ /[^0-9]/ && $self->{uservars}->{$id}->{$var} eq $value) ||
-								($self->{uservars}->{$id}->{$var} eq $value)) {
-									$reply = $happens;
+
+							# Get candidates for value matches.
+							my $botVar = $self->{botvars}->{$var};
+							my $usrVar = $self->{uservars}->{$id}->{$var};
+
+							if (defined $botVar || defined $usrVar) {
+
+								# Our check types:
+								# =  equal to
+								# != not equal
+								# <  less than
+								# <= less than or equal to
+								# >  greater than
+								# >= greater than or equal to
+								# ?  defined
+
+								if ($type eq '?') {
+									if (defined $botVar || defined $usrVar) {
+										if (defined $botVar) {
+											$reply = $happens;
+											$checkUser = 0;
+										}
+
+										if ($checkUser && !$isBotVar && defined $usrVar) {
+											$reply = $happens;
+											$checkUser = 0;
+										}
+									}
+								}
+								elsif ($type eq '=') {
+									if (defined $botVar || defined $usrVar) {
+										if (defined $botVar && $botVar eq $value) {
+											$reply = $happens;
+											$checkUser = 0;
+										}
+
+										if ($checkUser && !$isBotVar && defined $usrVar && $usrVar eq $value) {
+											$reply = $happens;
+										}
+									}
+								}
+								elsif ($type eq '!=') {
+									if (defined $botVar || defined $usrVar) {
+										if (defined $botVar && $botVar ne $value) {
+											$reply = $happens;
+											$checkUser = 0;
+										}
+
+										if ($checkUser && !$isBotVar && defined $usrVar && $usrVar ne $value) {
+											$reply = $happens;
+										}
+									}
+								}
+								elsif ($type eq '<') {
+									if (defined $botVar || defined $usrVar) {
+										if (defined $botVar && $botVar !~ /[^0-9]/ && $botVar < $value) {
+											$reply = $happens;
+											$checkUser = 0;
+										}
+
+										if ($checkUser && !$isBotVar && defined $usrVar && $usrVar !~ /[^0-9]/ && $usrVar < $value) {
+											$reply = $happens;
+										}
+									}
+								}
+								elsif ($type eq '<=') {
+									if (defined $botVar || defined $usrVar) {
+										if (defined $botVar && $botVar !~ /[^0-9]/ && $botVar <= $value) {
+											$reply = $happens;
+											$checkUser = 0;
+										}
+
+										if ($checkUser && !$isBotVar && defined $usrVar && $usrVar !~ /[^0-9]/ && $usrVar <= $value) {
+											$reply = $happens;
+										}
+									}
+								}
+								elsif ($type eq '>') {
+									if (defined $botVar || defined $usrVar) {
+										if (defined $botVar && $botVar !~ /[^0-9]/ && $botVar > $value) {
+											$reply = $happens;
+											$checkUser = 0;
+										}
+
+										if ($checkUser && !$isBotVar && defined $usrVar && $usrVar !~ /[^0-9]/ && $usrVar > $value) {
+											$reply = $happens;
+										}
+									}
+								}
+								elsif ($type eq '>=') {
+									if (defined $botVar || defined $usrVar) {
+										if (defined $botVar && $botVar !~ /[^0-9]/ && $botVar >= $value) {
+											$reply = $happens;
+											$checkUser = 0;
+										}
+
+										if ($checkUser && !$isBotVar && defined $usrVar && $usrVar !~ /[^0-9]/ && $usrVar >= $value) {
+											$reply = $happens;
+										}
+									}
 								}
 							}
 						}
+
+					#	my ($var,$value) = split(/=/, $cond, 2);
+					#	# Check variables.
+					#	if (exists $self->{botvars}->{$var} || exists $self->{uservars}->{$id}->{$var}) {
+					#		if (exists $self->{botvars}->{$var}) {
+					#			if (($value =~ /[^0-9]/ && $self->{botvars}->{$var} eq $value) ||
+					#			($self->{botvars}->{$var} eq $value)) {
+					#				$reply = $happens;
+					#			}
+					#		}
+					#		else {
+					#			if (($value =~ /[^0-9]/ && $self->{uservars}->{$id}->{$var} eq $value) ||
+					#			($self->{uservars}->{$id}->{$var} eq $value)) {
+					#				$reply = $happens;
+					#			}
+					#		}
+					#	}
 					}
 				}
 
@@ -936,7 +1088,7 @@ sub intReply {
 	$reply =~ s/<reply(\d)>/$self->{users}->{$id}->{history}->{reply}->[$1]/g;
 
 	# Insert variables.
-	$reply =~ s/<bot (.*?)>/$self->{botvars}->{$1}/ig;
+	$reply =~ s/<bot (.*?)>/$self->{botvars}->{$1}/g;
 	$reply =~ s/<id>/$id/ig;
 
 	# String modifiers.
@@ -1044,14 +1196,64 @@ sub intReply {
 
 		$reply =~ s/<set (.*?)>//i;
 	}
+	while ($reply =~ /<(add|sub|mult|div) (.*?)>/i) {
+		my $method = $1;
+		my $o = $2;
+		my $data = $o;
+		my ($what,$is) = split(/=/, $data, 2);
+
+		# See if this variable exists.
+		if (!exists $self->{uservars}->{$id}->{$what}) {
+			$self->{uservars}->{$id}->{$what} = 0; # Make it numeric
+		}
+
+		# Only accept numeric variables.
+		if ($self->{uservars}->{$id}->{$what} =~ /[^0-9]/) {
+			$reply =~ s/<$method $o>/(Var=NaN)/i;
+			next;
+		}
+		elsif ($is =~ /[^0-9]/) {
+			$reply =~ s/<$method $o>/(Value=NaN)/i;
+			next;
+		}
+
+		# Do the operation.
+		my $value = $self->{uservars}->{$id}->{$what} || 0;
+		if ($method =~ /add/i) {
+			$value += $is;
+		}
+		elsif ($method =~ /sub/i) {
+			$value -= $is;
+		}
+		elsif ($method =~ /mult/i) {
+			$value *= $is;
+		}
+		elsif ($method =~ /div/i) {
+			$value /= $is;
+		}
+
+		$self->{uservars}->{$id}->{$what} = $value;
+
+		$reply =~ s/<$method $o>//i;
+	}
 	while ($reply =~ /<get (.*?)>/i) {
 		my $o = $1;
 		my $data = $o;
-		my $value = $self->{uservars}->{$id}->{$data} || 'undefined';
+		my $value = 'undefined';
+		$value = $self->{uservars}->{$id}->{$data} if defined $self->{uservars}->{$id}->{$data};
 
 		# print "Inserting $data ($value)\n";
 
 		$reply =~ s/<get $o>/$value/i;
+	}
+
+	# Insert person tags.
+	while ($reply =~ /\{person\}(.*?)\{\/person\}/i) {
+		my $o = $1;
+		my $data = $o;
+		my $new = $self->person ($data);
+
+		$reply =~ s/\{person\}(.*?)\{\/person\}/$new/i;
 	}
 
 	# Update history.
@@ -1195,6 +1397,28 @@ sub formatMessage {
 	$msg =~ s/[^A-Za-z0-9 ]//g;
 	$msg =~ s/^\s//g;
 	$msg =~ s/\s$//g;
+
+	return $msg;
+}
+
+sub person {
+	my ($self,$msg) = @_;
+
+	# Lowercase the string.
+	$msg = lc($msg);
+
+	# Get the words and run substitutions.
+	my @words = split(/\s+/, $msg);
+	my @new = ();
+	foreach my $word (@words) {
+		if (exists $self->{person}->{$word}) {
+			$word = $self->{person}->{$word};
+		}
+		push (@new, $word);
+	}
+
+	# Reconstruct the message.
+	$msg = join (' ',@new);
 
 	return $msg;
 }
@@ -1447,7 +1671,7 @@ These methods are called on internally and should not be called by you.
 
 =head2 debug (MESSAGE)
 
-# print a debug message.
+Print a debug message.
 
 =head2 intReply (USER_ID, MESSAGE)
 
@@ -1507,6 +1731,9 @@ The supported types are as follows:
   var    - BotVariables (i.e. the bot's name, age, etc)
   array  - An array
   sub    - A substitution pattern
+  person - A person substitution.
+
+See also: L<"ENVIRONMENTAL VARIABLES"> and L<"PERSON SUBSTITUTION">.
 
 =item B<E<lt> and E<gt> (Label)>
 
@@ -1622,7 +1849,7 @@ Redirections can also be used inline. See the L<"TAGS"> section for more details
 
 The * command is used for checking conditionals. The format is:
 
-  * variable=value => say this
+  * variable = value => say this
 
 For example, you might want to make a condition to differentiate male from
 female users.
@@ -1631,6 +1858,26 @@ female users.
   * gender=male => You're a guy.
   * gender=female => You're a girl.
   - I don't think you ever told me what you are.
+
+You can perform the following operations on variable checks:
+
+  =  equal to
+  != not equal to
+  <  less than
+  <= less than or equal to
+  >  greater than
+  >= greater than or equal to
+  ?  returns true if the var is even defined
+
+B<Note:> If you want a condition to check the value of a bot variable, you must
+prepend a # sign on the variable name. For instance:
+
+  + is your name still soandso
+  * #name = Soandso => That's still my name.
+  - No, I changed it.
+
+That would check the B<botvar> "name", not the B<uservar>, because of the
+supplied # sign.
 
 =item B<& (Perl)>
 
@@ -1913,6 +2160,20 @@ Get and set a user variable. These are local variables for each user.
   + who am i
   - You are <get name> aren't you?
 
+=head2 E<lt>addE<gt>, E<lt>subE<gt>, E<lt>multE<gt>, E<lt>divE<gt>
+
+Add, subtract, multiply and divide numeric variables, respectively.
+
+  + give me 5 points
+  - <add points=5>You have received 5 points and now have <get points> total.
+
+If the variable is undefined, it is set to 0 before the math is done on it.
+If you try to modify a non-numerical variable, the operation will fail and a
+little note of B<(Var=NaN)> will appear in place of the tag.
+
+Likewise, if you try to modify a variable with a non-numerical value,
+B<(Value=NaN)> will be inputted instead.
+
 =head2 {topic=...}
 
 The topic tag. This will set the user's topic to something else (see L<"TOPICS">). Only
@@ -1947,6 +2208,11 @@ Will insert a bit of random text. This has two syntaxes:
   Insert a random phrase (separate by pipes)
   {random}Yes sir.|No sir.{/random}
 
+=head2 {person}...{/person}
+
+Will take the enclosed text and run person substitutions on them (see
+L<"PERSON SUBSTITUTION">).
+
 =head2 {formal}...{/formal}
 
 Will Make Your Text Formal
@@ -1975,6 +2241,62 @@ if you want spaces in the continuation.
 
 (New with Version 0.06) Inserts a newline. Note that this only happens when
 you request a B<reply()> from the module.
+
+=head1 ENVIRONMENTAL VARIABLES
+
+Environmental variables are kept as "botvariables" (i.e. they can be retrieved with
+the E<lt>botE<gt> tag). The variable names all begin with "ENV_" and are in uppercase.
+
+=head2 RiveScript Environment Variables
+
+  ENV_OS         = The operating system RiveScript is running on.
+  ENV_APPVERSION = The version of Chatbot::RiveScript used.
+  ENV_APPNAME    = A user-agent style string that looks like "Chatbot::RiveScript/0.08"
+
+=head2 Perl Environment Variables
+
+All the environment variables available to your Perl script are kept under B<ENV_SYS_>
+with their original names following. For example, B<ENV_SYS_PATH> would be the %PATH%
+variable on Windows.
+
+=head2 Set Environment Variables
+
+Currently, RiveScript's syntax does not allow the modification of any variable
+beginning with "env_". If you absolutely most override one of these variables for
+any reason at all, you can call the B<setVariable()> method to do so.
+
+=head1 PERSON SUBSTITUTION
+
+The {person} tag can be used to perform substitutions between 1st- and 2nd-person
+adjectives (see L<"TAGS">).
+
+You define these with the !define tag in a similar fashion as how you define
+substitution data. For example:
+
+  ! person i     = you
+  ! person my    = your
+  ! person mine  = yours
+  ! person me    = you
+  ! person am    = are
+  ! person you   = I
+  ! person your  = my
+  ! person yours = mine
+  ! person are   = am
+
+Then use the {person} tag in a response. The enclosed text will swap the words
+listed with the !person tags. For instance:
+
+  + do you think *
+  - What if I do think {person}<star>{/person}?
+
+  "Do you think I am a bad person?"
+  "What if I do think you are a bad person?"
+
+See, that's the use of this tag. Otherwise the bot would have replied "What if I
+do think B<I am> a bad person?" and not make very much sense.
+
+B<Note:> RiveScript does NOT assume any person substitutions. Your RiveScript
+code must define them as exampled above.
 
 =head1 DYNAMIC REPLIES
 
@@ -2141,6 +2463,14 @@ You might want to take a look at L<Chatbot::Alpha>, this module's predecessor.
 None yet known.
 
 =head1 CHANGES
+
+  Version 0.08
+  - Added <add>, <sub>, <mult>, and <div> tags.
+  - Added environmental variable support.
+  - Extended *CONDITION to support inequalities
+  - Botvars in conditions must be explicitely specified with # before the varname.
+  - Added "! person" substitutions
+  - Added {person} tag
 
   Version 0.07
   - Added write() method

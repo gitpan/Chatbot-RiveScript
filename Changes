@@ -1,5 +1,13 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.08 Thu Feb 16 17:37:00 2006
+	- Added <add>, <sub>, <mult>, and <div> tags.
+	- Added environmental variable support.
+	- Extended *CONDITION to support inequalities
+	- Botvars in conditions must be explicitely specified with # before the varname.
+	- Added "! person" substitutions
+	- Added {person} tag
+
 0.07  Wed Feb 15 22:15:00 2006
 	- Added write() method
 	- reply() method now can take tags to force scalar return or to ignore

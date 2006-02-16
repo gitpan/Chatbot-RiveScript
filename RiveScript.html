@@ -68,11 +68,13 @@
 		<li><a href="#_id_">&lt;id&gt;</a></li>
 		<li><a href="#_bot_">&lt;bot&gt;</a></li>
 		<li><a href="#_get____set_">&lt;get&gt;, &lt;set&gt;</a></li>
+		<li><a href="#_add____sub____mult____div_">&lt;add&gt;, &lt;sub&gt;, &lt;mult&gt;, &lt;div&gt;</a></li>
 		<li><a href="#_topic_____">{topic=...}</a></li>
 		<li><a href="#_nextreply_">{nextreply}</a></li>
 		<li><a href="#______">{@...}</a></li>
 		<li><a href="#______">{!...}</a></li>
 		<li><a href="#_random______random_">{random}...{/random}</a></li>
+		<li><a href="#_person______person_">{person}...{/person}</a></li>
 		<li><a href="#_formal______formal_">{formal}...{/formal}</a></li>
 		<li><a href="#_sentence______sentence_">{sentence}...{/sentence}</a></li>
 		<li><a href="#_uppercase______uppercase_">{uppercase}...{/uppercase}</a></li>
@@ -81,6 +83,15 @@
 		<li><a href="#_n">\n</a></li>
 	</ul>
 
+	<li><a href="#environmental_variables">ENVIRONMENTAL VARIABLES</a></li>
+	<ul>
+
+		<li><a href="#rivescript_environment_variables">RiveScript Environment Variables</a></li>
+		<li><a href="#perl_environment_variables">Perl Environment Variables</a></li>
+		<li><a href="#set_environment_variables">Set Environment Variables</a></li>
+	</ul>
+
+	<li><a href="#person_substitution">PERSON SUBSTITUTION</a></li>
 	<li><a href="#dynamic_replies">DYNAMIC REPLIES</a></li>
 	<ul>
 
@@ -248,7 +259,7 @@ to get variables of all users.</p>
 <p>
 </p>
 <h2><a name="debug__message_">debug (MESSAGE)</a></h2>
-<p># print a debug message.</p>
+<p>Print a debug message.</p>
 <p>
 </p>
 <h2><a name="intreply__user_id__message_">intReply (USER_ID, MESSAGE)</a></h2>
@@ -314,7 +325,11 @@ to define variables and arrays. Their format is as follows:
   global - Global settings (top-level things)
   var    - BotVariables (i.e. the bot's name, age, etc)
   array  - An array
-  sub    - A substitution pattern</pre>
+  sub    - A substitution pattern
+  person - A person substitution.</pre>
+</dd>
+<dd>
+<p>See also: <a href="#environmental_variables">ENVIRONMENTAL VARIABLES</a> and <a href="#person_substitution">PERSON SUBSTITUTION</a>.</p>
 </dd>
 <p></p>
 <dt><strong><a name="item__3c_and__3e__28label_29"><strong>&lt; and &gt; (Label)</strong></a></strong><br />
@@ -479,7 +494,7 @@ feel like making your main trigger handle all of them.
 </li>
 The * command is used for checking conditionals. The format is:
 <pre>
-  * variable=value =&gt; say this</pre>
+  * variable = value =&gt; say this</pre>
 <p>For example, you might want to make a condition to differentiate male from
 female users.</p>
 <pre>
@@ -487,6 +502,23 @@ female users.</p>
   * gender=male =&gt; You're a guy.
   * gender=female =&gt; You're a girl.
   - I don't think you ever told me what you are.</pre>
+<p>You can perform the following operations on variable checks:</p>
+<pre>
+  =  equal to
+  != not equal to
+  &lt;  less than
+  &lt;= less than or equal to
+  &gt;  greater than
+  &gt;= greater than or equal to
+  ?  returns true if the var is even defined</pre>
+<p><strong>Note:</strong> If you want a condition to check the value of a bot variable, you must
+prepend a # sign on the variable name. For instance:</p>
+<pre>
+  + is your name still soandso
+  * #name = Soandso =&gt; That's still my name.
+  - No, I changed it.</pre>
+<p>That would check the <strong>botvar</strong> ``name'', not the <strong>uservar</strong>, because of the
+supplied # sign.</p>
 <p></p>
 <dt><strong><a name="item__26__28perl_29"><strong>&amp; (Perl)</strong></a></strong><br />
 </dt>
@@ -756,6 +788,18 @@ you said what's up and then I said not much''</p>
   - You are &lt;get name&gt; aren't you?</pre>
 <p>
 </p>
+<h2><a name="_add____sub____mult____div_">&lt;add&gt;, &lt;sub&gt;, &lt;mult&gt;, &lt;div&gt;</a></h2>
+<p>Add, subtract, multiply and divide numeric variables, respectively.</p>
+<pre>
+  + give me 5 points
+  - &lt;add points=5&gt;You have received 5 points and now have &lt;get points&gt; total.</pre>
+<p>If the variable is undefined, it is set to 0 before the math is done on it.
+If you try to modify a non-numerical variable, the operation will fail and a
+little note of <strong>(Var=NaN)</strong> will appear in place of the tag.</p>
+<p>Likewise, if you try to modify a variable with a non-numerical value,
+<strong>(Value=NaN)</strong> will be inputted instead.</p>
+<p>
+</p>
 <h2><a name="_topic_____">{topic=...}</a></h2>
 <p>The topic tag. This will set the user's topic to something else (see <a href="#topics">TOPICS</a>). Only
 one of these should be in a response, and in the case of duplicates only the first
@@ -790,6 +834,11 @@ in the final response of the bot; the changes are made silently.</p>
   {random}Yes sir.|No sir.{/random}</pre>
 <p>
 </p>
+<h2><a name="_person______person_">{person}...{/person}</a></h2>
+<p>Will take the enclosed text and run person substitutions on them (see
+<a href="#person_substitution">PERSON SUBSTITUTION</a>).</p>
+<p>
+</p>
 <h2><a name="_formal______formal_">{formal}...{/formal}</a></h2>
 <p>Will Make Your Text Formal</p>
 <p>
@@ -816,6 +865,61 @@ if you want spaces in the continuation.</p>
 <h2><a name="_n">\n</a></h2>
 <p>(New with Version 0.06) Inserts a newline. Note that this only happens when
 you request a <strong>reply()</strong> from the module.</p>
+<p>
+</p>
+<hr />
+<h1><a name="environmental_variables">ENVIRONMENTAL VARIABLES</a></h1>
+<p>Environmental variables are kept as ``botvariables'' (i.e. they can be retrieved with
+the &lt;bot&gt; tag). The variable names all begin with ``ENV_'' and are in uppercase.</p>
+<p>
+</p>
+<h2><a name="rivescript_environment_variables">RiveScript Environment Variables</a></h2>
+<pre>
+  ENV_OS         = The operating system RiveScript is running on.
+  ENV_APPVERSION = The version of Chatbot::RiveScript used.
+  ENV_APPNAME    = A user-agent style string that looks like &quot;Chatbot::RiveScript/0.08&quot;</pre>
+<p>
+</p>
+<h2><a name="perl_environment_variables">Perl Environment Variables</a></h2>
+<p>All the environment variables available to your Perl script are kept under <strong>ENV_SYS_</strong>
+with their original names following. For example, <strong>ENV_SYS_PATH</strong> would be the %PATH%
+variable on Windows.</p>
+<p>
+</p>
+<h2><a name="set_environment_variables">Set Environment Variables</a></h2>
+<p>Currently, RiveScript's syntax does not allow the modification of any variable
+beginning with ``env_''. If you absolutely most override one of these variables for
+any reason at all, you can call the <strong>setVariable()</strong> method to do so.</p>
+<p>
+</p>
+<hr />
+<h1><a name="person_substitution">PERSON SUBSTITUTION</a></h1>
+<p>The {person} tag can be used to perform substitutions between 1st- and 2nd-person
+adjectives (see <a href="#tags">TAGS</a>).</p>
+<p>You define these with the !define tag in a similar fashion as how you define
+substitution data. For example:</p>
+<pre>
+  ! person i     = you
+  ! person my    = your
+  ! person mine  = yours
+  ! person me    = you
+  ! person am    = are
+  ! person you   = I
+  ! person your  = my
+  ! person yours = mine
+  ! person are   = am</pre>
+<p>Then use the {person} tag in a response. The enclosed text will swap the words
+listed with the !person tags. For instance:</p>
+<pre>
+  + do you think *
+  - What if I do think {person}&lt;star&gt;{/person}?</pre>
+<pre>
+  &quot;Do you think I am a bad person?&quot;
+  &quot;What if I do think you are a bad person?&quot;</pre>
+<p>See, that's the use of this tag. Otherwise the bot would have replied ``What if I
+do think <strong>I am</strong> a bad person?'' and not make very much sense.</p>
+<p><strong>Note:</strong> RiveScript does NOT assume any person substitutions. Your RiveScript
+code must define them as exampled above.</p>
 <p>
 </p>
 <hr />
@@ -976,6 +1080,14 @@ decide if it should give a reply.</p>
 </p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
+<pre>
+  Version 0.08
+  - Added &lt;add&gt;, &lt;sub&gt;, &lt;mult&gt;, and &lt;div&gt; tags.
+  - Added environmental variable support.
+  - Extended *CONDITION to support inequalities
+  - Botvars in conditions must be explicitely specified with # before the varname.
+  - Added &quot;! person&quot; substitutions
+  - Added {person} tag</pre>
 <pre>
   Version 0.07
   - Added write() method

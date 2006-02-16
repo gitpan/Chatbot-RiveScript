@@ -40,9 +40,18 @@
    ############################## */
 
 + is your name bob or casey
-* name=Bob => I'm Bob.
-* name=Casey Rive => I'm Casey.
+* #name=Bob => I'm Bob.
+* #name=Casey Rive => I'm Casey.
 - Neither of those are my name.
+
++ is my name bob
+* name =  Bob => Yes, that's your name. (<get name>; <bot name>)
+* name != Bob => It most certainly is not!
+- No, it's not.
+
++ test lt name
+* name < Bob => This shouldn't be called, Bob isn't numeric.
+- The test must have passed.
 
 + are you a guy or a girl
 * sex=male => I'm a guy.
@@ -256,3 +265,64 @@
 
 + wink
 - hehe ;)
+
+/* ##############################
+   ## Test Numeric Modifiers   ##
+   ############################## */
+
++ do i have points
+* points?=> Yes, your points are <get points>.
+- Your points aren't defined.
+
++ set points to 0
+- <set points=0>Points (re)set to 0.
+
++ count points
+- You currently have <get points> on record.
+
++ delete points
+- <set points=undef>Points variable deleted.
+
++ add * points
+- <add points=<star>>Given <star> points. New value: <get points>
+
++ sub * points
+- <sub points=<star>>Taken <star> points. New value: <get points>
+
++ double points
+- <mult points=2>Your points have been doubled. New value: <get points>
+
++ cut points
+- <div points=2>Your points have been cut in half. New value: <get points>
+
++ add to name
+- <add name=5>Tried adding 5 to name.
+
++ points milestone
+* points < 10 => You have less than 10 points.
+* points < 25 => You have less than 25 points.
+- You must have 25 or more points.
+
++ more than 25
+* points >= 25 => You have more than or equal to 25 points.
+- You're not there yet.
+
+/* ##############################
+   ## Test {person} Tag        ##
+   ############################## */
+
++ do you think *
+- What if I do think {person}<star>{/person}?
+
+/* ##############################
+   ## Test Environment Vars    ##
+   ############################## */
+
++ rs version
+- I am running on RiveScript version <bot ENV_APPVERSION>, or "<bot ENV_APPNAME>", running on <bot ENV_OS>.
+
++ change os
+- Trying to change OS... {! var ENV_OS = Linux}
+
++ get system path
+- The system path is: <bot ENV_SYS_PATH>

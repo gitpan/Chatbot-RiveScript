@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 sub new {
 	my $proto = shift;
@@ -149,13 +149,25 @@ sub getUservars {
 sub loadDirectory {
 	my $self = shift;
 	my $dir = shift;
+	my @ext = ('.rs');
+	if (scalar(@_)) {
+		@ext = @_;
+	}
 
 	# Load a directory.
 	if (-d $dir) {
 		opendir (DIR, $dir);
-		foreach my $file (sort(grep(/\.rs$/i, readdir(DIR)))) {
+		foreach my $file (sort(grep(!/^\./, readdir(DIR)))) {
 			# Load in this file.
-			$self->loadFile ("$dir/$file");
+			my $okay = 0;
+			foreach my $type (@ext) {
+				if ($file =~ /$type$/i) {
+					$okay = 1;
+					last;
+				}
+			}
+
+			$self->loadFile ("$dir/$file") if $okay;
 		}
 		closedir (DIR);
 	}
@@ -624,7 +636,16 @@ sub sortReplies {
 }
 
 sub reply {
-	my ($self,$id,$msg) = @_;
+	my $self = shift;
+	my $id = shift;
+	my $msg = shift;
+
+	my %args = (
+		scalar   => 0, # Force scalar return
+		no_split => 0, # No sentence-splitting
+		retry    => 0, # DO NOT RECONFIGURE THIS
+		@_,
+	);
 
 	# Reset loops.
 	$self->{loops} = 0;
@@ -642,12 +663,19 @@ sub reply {
 	my @out = ();
 	if ($begin =~ /\{ok\}/i) {
 		# Format their message.
-		my @sentences = $self->splitSentences ($msg);
-		foreach my $in (@sentences) {
-			$in = $self->formatMessage ($in);
-			next unless length $in > 0;
-			# print "Sending sentence \"$in\" in...\n";
-			my @returned = $self->intReply ($id,$in);
+		unless ($args{no_split}) {
+			my @sentences = $self->splitSentences ($msg);
+			foreach my $in (@sentences) {
+				$in = $self->formatMessage ($in);
+				next unless length $in > 0;
+				# print "Sending sentence \"$in\" in...\n";
+				my @returned = $self->intReply ($id,$in);
+				push (@out,@returned);
+			}
+		}
+		else {
+			$msg = $self->formatMessage ($msg);
+			my @returned = $self->intReply ($id,$msg);
 			push (@out,@returned);
 		}
 
@@ -657,6 +685,20 @@ sub reply {
 			my $reply = $begin;
 			$reply =~ s/\{ok\}/$_/ig;
 			push (@final,$reply);
+		}
+
+		# Get it in scalar form.
+		my $scalar = join (" ", @final);
+
+		# If no reply, try again without sentence-splitting.
+		if (($scalar =~ /^ERR: No Reply/ || length $scalar == 0) && $args{retry} != 1) {
+			my @array = $self->reply ($id,$msg, no_split => 1, retry => 1, scalar => 0);
+			(@final) = (@array);
+		}
+
+		# Return in scalar form?
+		if ($args{scalar}) {
+			return join (" ", @final);
 		}
 
 		return @final;
@@ -763,7 +805,7 @@ sub intReply {
 				}
 				$regexp =~ s/\(\@(.*?)\)/$rep/i;
 
-				print "Filtered in array $rep\n";
+				# print "Filtered in array $rep\n";
 			}
 
 			# Filter in botvariables.
@@ -1196,6 +1238,76 @@ sub stringUtil {
 	}
 }
 
+sub write {
+	my $self = shift;
+	my $to = shift || 'written.rs';
+
+	my @file = ();
+
+	# Write all replies to file.
+	foreach my $topic (keys %{$self->{replies}}) {
+		if ($topic eq 'random' || $topic =~ /^__that__/i) {
+			# Don't add this in.
+		}
+		elsif ($topic eq '__begin__') {
+			push (@file, "> begin");
+			push (@file, "");
+		}
+		else {
+			push (@file, "> topic $topic");
+			push (@file, "");
+		}
+
+		# Get all triggers.
+		foreach my $t (keys %{$self->{replies}->{$topic}}) {
+			push (@file, "+ $t");
+
+			# Get conditions
+			for (my $i = 1; exists $self->{replies}->{$topic}->{$t}->{conditions}->{$i}; $i++) {
+				my $line = $self->{replies}->{$topic}->{$t}->{conditions}->{$i};
+				push (@file, "* $line");
+			}
+
+			# Get all the replies.
+			for (my $i = 1; exists $self->{replies}->{$topic}->{$t}->{$i}; $i++) {
+				push (@file, "- $self->{replies}->{$topic}->{$t}->{$i}");
+			}
+
+			# Get redirections.
+			if (exists $self->{replies}->{$topic}->{$t}->{redirect}) {
+				my $redir = $self->{replies}->{$topic}->{$t}->{redirect};
+				push (@file, "\@ $redir");
+			}
+
+			# Get sys codes.
+			if (exists $self->{replies}->{$topic}->{$t}->{system}->{codes}) {
+				my $sys = $self->{replies}->{$topic}->{$t}->{system}->{codes};
+				push (@file, "& $sys");
+			}
+
+			push (@file, "");
+		}
+
+		if ($topic eq 'random' || $topic =~ /^__that__/i) {
+			# Don't add this in.
+		}
+		elsif ($topic eq '__begin__') {
+			push (@file, "< begin");
+			push (@file, "");
+		}
+		else {
+			push (@file, "< topic");
+			push (@file, "");
+		}
+	}
+
+	open (OUT, ">$to") or return 0;
+	print OUT join ("\n", @file);
+	close (OUT);
+
+	return 1;
+}
+
 1;
 __END__
 
@@ -1246,11 +1358,12 @@ Creates a new Chatbot::RiveScript instance. Pass in any defaults here.
 
 =head2 setSubroutine (OBJECT_NAME => CODEREF)
 
-Define a macro (see L<"OBJECT MACROS">)
+Define a macro (see Object Macros)
 
-=head2 loadDirectory (DIRECTORY)
+=head2 loadDirectory (DIRECTORY[, EXTS])
 
-Load a directory of RiveScript (.rs) files.
+Load a directory of RiveScript files. EXTS is optionally an array of file
+extensions to load, in the format B<(.rs .txt .etc)>. Default is just ".rs"
 
 =head2 loadFile (FILEPATH[, STREAM])
 
@@ -1269,17 +1382,41 @@ It will sort them for you anyway, but it's always recommended to sort them
 yourself. For example, if you sort them and then load new replies, the new
 replies will not be matchable because the sort cache hasn't updated.
 
-=head2 reply (USER_ID, MESSAGE)
+=head2 reply (USER_ID, MESSAGE[, %TAGS])
 
 Get a reply from the bot. This will return an array. The values of this
 array would be all the replies (i.e. if you use {nextreply} in a response
 to return multiple).
+
+B<%TAGS> is optionally a string of special reply tags:
+
+  scalar   -- Forces a scalar return of all replies found. The method
+              will return a scalar rather than an array.
+  no_split -- Ignore sentence-splitting when going into the reply.
+              This is for special cases such as ";-)" (winking emoticon)
+              where it is unmatchable because ; is a sentence-splitter.
+
+  retry    -- You should NEVER set this argument. This is used internally
+              so the module know it's on a retry run (if a reply isn't
+              found, it tries again but sets no_split to true).
 
 =head2 search (STRING)
 
 Search all loaded replies for every trigger that STRING matches. Returns an
 array of results, containing the trigger, what topic it was under, and the
 reference to its file and line number.
+
+=head2 write ([FILEPATH])
+
+Outputs the current contents of the loaded replies into a single file. This
+is useful for if your application dynamically learns replies by editing the
+loaded hashrefs. It will write all replies to the file under their own topics...
+i.e. perfectly functional code. Comments and other unnessecary formatting is
+ignored, because the module doesn't pay attention to them at loading time anyway.
+
+The default path is to "written.rs"
+
+See L<"DYNAMIC REPLIES">.
 
 =head2 setGlobal (VARIABLE => VALUE, ...)
 
@@ -1301,7 +1438,7 @@ Set a user variable (alias for <set var=value>)
 
 Get all variables for a user, returns a hash reference. (alias for <get var>
 for every variable). If you don't provide a USER_ID, or provide '__rivescript__'
-(see L<"RESERVED VARIABLES">), it will return an array reference of hash references,
+(see Reserved Variables), it will return an array reference of hash references,
 to get variables of all users.
 
 =head1 PRIVATE METHODS
@@ -1504,7 +1641,7 @@ since it was known as Chatbot::Alpha.
 
   + what is 2 plus 2
   - 500 Internal Error.
-  # $reply = '2 + 2 = 4';
+  & $reply = '2 + 2 = 4';
 
 =item B<// (Comments)>
 
@@ -1839,6 +1976,82 @@ if you want spaces in the continuation.
 (New with Version 0.06) Inserts a newline. Note that this only happens when
 you request a B<reply()> from the module.
 
+=head1 DYNAMIC REPLIES
+
+A function added in version 0.07 is to B<write()> the loaded replies into a
+single RS file. This is useful for if your program dynamically learns new
+replies.
+
+This section of the POD is devoted to explaining the setup of the internal
+hashrefs of the RiveScript instance.
+
+=head2 $rs->{replies}
+
+This hashref contains the meat of the loaded replies. The first keys here
+are the topics (keep in mind that 'random' is the default topic). For replies
+that had %PREVIOUS in them, their topics are '__that__(bots last message, lowercase
+and without punctuation)' and that the data from BEGIN is in '__begin__'
+
+So for example, B<$rs-E<gt>{replies}-E<gt>{random}> is where replies under the default
+topic are, while B<$rs-E<gt>{replies}-E<gt>{apology}> is where replies under the
+'apology' topic are, et cetera.
+
+The sub-keys under a topic are the triggers. These are literally the strings
+you'd find in the file at the + command.
+
+For example, B<$rs-E<gt>{replies}-E<gt>{random}-E<gt>{'my favorite color is (@colors)'}>
+
+=head2 Trigger Keys
+
+The following keys are used under trigger hashrefs ($rs->{replies}->{$topic}->{$trigger})
+
+B<1..n> - The -REPLIES under the trigger. The first - is position 1, and they increment
+from there.
+
+B<redirect> - The data from the @redirect command. Since RiveScript only supports a single
+@redirect in a message, this always has a single value.
+
+B<conditions-E<gt>{1..n}> - The data from the *condition commands. This is in similar format
+to the -replies, where 1 is the first condition.
+
+B<system-E<gt>{codes}> - The contents of any system codes provided by &perl commands.
+
+=head2 Sorted Arrays
+
+The first keys under B<$rs-E<gt>{array}> are the topic names, as they are in $rs->{replies}.
+But the contents of each topic key is an array ref of the sorted triggers.
+
+Generally, you shouldn't have to worry about modifying this variable directly--just
+call sortReplies() and it will manage it automatically.
+
+=head2 Examples
+
+  // RiveScript Code
+  + my name is *
+  - <star>, nice to meet you!
+  - Nice to meet you, <star>.
+
+  # Perl code. Get the value of the second reply.
+  $rs->{replies}->{random}->{'my name is *'}->{2}
+
+  // RiveScript Code
+  > topic favorites
+    + *(@colors)*
+    - I like <star2> too. :-)
+    & &main::log('<id> likes <star2>')
+  < topic
+
+  # Perl code. Get the perl data from that trigger.
+  $rs->{replies}->{favorites}->{'*(@colors)*'}->{system}->{codes}
+
+  // RiveScript Code
+  + *
+  % whos there
+  - <star> who?
+
+  # Perl code. Access this one's reply.
+  $rs->{replies}->{'__that__whos there'}->{1}
+
 =head1 RESERVED VARIABLES
 
 The following are all the reserved variables and values within RiveScript's
@@ -1929,8 +2142,17 @@ None yet known.
 
 =head1 CHANGES
 
+  Version 0.07
+  - Added write() method
+  - reply() method now can take tags to force scalar return or to ignore
+    sentence-splitting.
+  - loadDirectory() method can now take a list of specific file extensions
+    to look for.
+  - Cleaned up some leftover debug prints from last release (sorry about that!)
+
   Version 0.06
   - Extended ^CONTINUE to cover more commands
+  - Added \s and \n tags
   - Revised POD
 
   Version 0.05

@@ -249,3 +249,10 @@
 	+ sorry
 	- See, that wasn't too hard. I'll forgive you.{topic=random}
 < topic
+
+/* ##############################
+   ## Test Wink Emoticon       ##
+   ############################## */
+
++ wink
+- hehe ;)

@@ -20,12 +20,13 @@
 
 		<li><a href="#new">new</a></li>
 		<li><a href="#setsubroutine__object_name____coderef_">setSubroutine (OBJECT_NAME =&gt; CODEREF)</a></li>
-		<li><a href="#loaddirectory__directory_">loadDirectory (DIRECTORY)</a></li>
+		<li><a href="#loaddirectory__directory___exts__">loadDirectory (DIRECTORY[, EXTS])</a></li>
 		<li><a href="#loadfile__filepath___stream__">loadFile (FILEPATH[, STREAM])</a></li>
 		<li><a href="#stream__code_">stream (CODE)</a></li>
 		<li><a href="#sortreplies">sortReplies</a></li>
-		<li><a href="#reply__user_id__message_">reply (USER_ID, MESSAGE)</a></li>
+		<li><a href="#reply__user_id__message____tags__">reply (USER_ID, MESSAGE[, %TAGS])</a></li>
 		<li><a href="#search__string_">search (STRING)</a></li>
+		<li><a href="#write___filepath__">write ([FILEPATH])</a></li>
 		<li><a href="#setglobal__variable____value______">setGlobal (VARIABLE =&gt; VALUE, ...)</a></li>
 		<li><a href="#setvariable__variable____value______">setVariable (VARIABLE =&gt; VALUE, ...)</a></li>
 		<li><a href="#setsubstitution__before____after______">setSubstitution (BEFORE =&gt; AFTER, ...)</a></li>
@@ -78,6 +79,15 @@
 		<li><a href="#_lowercase______lowercase_">{lowercase}...{/lowercase}</a></li>
 		<li><a href="#_s">\s</a></li>
 		<li><a href="#_n">\n</a></li>
+	</ul>
+
+	<li><a href="#dynamic_replies">DYNAMIC REPLIES</a></li>
+	<ul>
+
+		<li><a href="#_rs__replies_">$rs-&gt;{replies}</a></li>
+		<li><a href="#trigger_keys">Trigger Keys</a></li>
+		<li><a href="#sorted_arrays">Sorted Arrays</a></li>
+		<li><a href="#examples">Examples</a></li>
 	</ul>
 
 	<li><a href="#reserved_variables">RESERVED VARIABLES</a></li>
@@ -151,11 +161,12 @@ Markup Language).</p>
 <p>
 </p>
 <h2><a name="setsubroutine__object_name____coderef_">setSubroutine (OBJECT_NAME =&gt; CODEREF)</a></h2>
-<p>Define a macro (see <a href="#object_macros">OBJECT MACROS</a>)</p>
+<p>Define a macro (see Object Macros)</p>
 <p>
 </p>
-<h2><a name="loaddirectory__directory_">loadDirectory (DIRECTORY)</a></h2>
-<p>Load a directory of RiveScript (.rs) files.</p>
+<h2><a name="loaddirectory__directory___exts__">loadDirectory (DIRECTORY[, EXTS])</a></h2>
+<p>Load a directory of RiveScript files. EXTS is optionally an array of file
+extensions to load, in the format <strong>(.rs .txt .etc)</strong>. Default is just ``.rs''</p>
 <p>
 </p>
 <h2><a name="loadfile__filepath___stream__">loadFile (FILEPATH[, STREAM])</a></h2>
@@ -175,16 +186,37 @@ yourself. For example, if you sort them and then load new replies, the new
 replies will not be matchable because the sort cache hasn't updated.</p>
 <p>
 </p>
-<h2><a name="reply__user_id__message_">reply (USER_ID, MESSAGE)</a></h2>
+<h2><a name="reply__user_id__message____tags__">reply (USER_ID, MESSAGE[, %TAGS])</a></h2>
 <p>Get a reply from the bot. This will return an array. The values of this
 array would be all the replies (i.e. if you use {nextreply} in a response
 to return multiple).</p>
+<p><strong>%TAGS</strong> is optionally a string of special reply tags:</p>
+<pre>
+  scalar   -- Forces a scalar return of all replies found. The method
+              will return a scalar rather than an array.
+  no_split -- Ignore sentence-splitting when going into the reply.
+              This is for special cases such as &quot;;-)&quot; (winking emoticon)
+              where it is unmatchable because ; is a sentence-splitter.</pre>
+<pre>
+  retry    -- You should NEVER set this argument. This is used internally
+              so the module know it's on a retry run (if a reply isn't
+              found, it tries again but sets no_split to true).</pre>
 <p>
 </p>
 <h2><a name="search__string_">search (STRING)</a></h2>
 <p>Search all loaded replies for every trigger that STRING matches. Returns an
 array of results, containing the trigger, what topic it was under, and the
 reference to its file and line number.</p>
+<p>
+</p>
+<h2><a name="write___filepath__">write ([FILEPATH])</a></h2>
+<p>Outputs the current contents of the loaded replies into a single file. This
+is useful for if your application dynamically learns replies by editing the
+loaded hashrefs. It will write all replies to the file under their own topics...
+i.e. perfectly functional code. Comments and other unnessecary formatting is
+ignored, because the module doesn't pay attention to them at loading time anyway.</p>
+<p>The default path is to ``written.rs''</p>
+<p>See <a href="#dynamic_replies">DYNAMIC REPLIES</a>.</p>
 <p>
 </p>
 <h2><a name="setglobal__variable____value______">setGlobal (VARIABLE =&gt; VALUE, ...)</a></h2>
@@ -206,7 +238,7 @@ reference to its file and line number.</p>
 <h2><a name="getuservars__user_id_">getUservars (USER_ID)</a></h2>
 <p>Get all variables for a user, returns a hash reference. (alias for &lt;get var&gt;
 for every variable). If you don't provide a USER_ID, or provide '__rivescript__'
-(see <a href="#reserved_variables">RESERVED VARIABLES</a>), it will return an array reference of hash references,
+(see Reserved Variables), it will return an array reference of hash references,
 to get variables of all users.</p>
 <p>
 </p>
@@ -468,7 +500,7 @@ since it was known as Chatbot::Alpha.
 <pre>
   + what is 2 plus 2
   - 500 Internal Error.
-  # $reply = '2 + 2 = 4';</pre>
+  &amp; $reply = '2 + 2 = 4';</pre>
 </dd>
 <p></p>
 <dt><strong><a name="item__2f_2f__28comments_29"><strong>// (Comments)</strong></a></strong><br />
@@ -787,6 +819,75 @@ you request a <strong>reply()</strong> from the module.</p>
 <p>
 </p>
 <hr />
+<h1><a name="dynamic_replies">DYNAMIC REPLIES</a></h1>
+<p>A function added in version 0.07 is to <strong>write()</strong> the loaded replies into a
+single RS file. This is useful for if your program dynamically learns new
+replies.</p>
+<p>This section of the POD is devoted to explaining the setup of the internal
+hashrefs of the RiveScript instance.</p>
+<p>
+</p>
+<h2><a name="_rs__replies_">$rs-&gt;{replies}</a></h2>
+<p>This hashref contains the meat of the loaded replies. The first keys here
+are the topics (keep in mind that 'random' is the default topic). For replies
+that had %PREVIOUS in them, their topics are '__that__(bots last message, lowercase
+and without punctuation)' and that the data from BEGIN is in '__begin__'</p>
+<p>So for example, <strong>$rs-&gt;{replies}-&gt;{random}</strong> is where replies under the default
+topic are, while <strong>$rs-&gt;{replies}-&gt;{apology}</strong> is where replies under the
+'apology' topic are, et cetera.</p>
+<p>The sub-keys under a topic are the triggers. These are literally the strings
+you'd find in the file at the + command.</p>
+<p>For example, <strong>$rs-&gt;{replies}-&gt;{random}-&gt;{'my favorite color is (@colors)'}</strong></p>
+<p>
+</p>
+<h2><a name="trigger_keys">Trigger Keys</a></h2>
+<p>The following keys are used under trigger hashrefs ($rs-&gt;{replies}-&gt;{$topic}-&gt;{$trigger})</p>
+<p><strong>1..n</strong> - The -REPLIES under the trigger. The first - is position 1, and they increment
+from there.</p>
+<p><strong>redirect</strong> - The data from the @redirect command. Since RiveScript only supports a single
+@redirect in a message, this always has a single value.</p>
+<p><strong>conditions-&gt;{1..n}</strong> - The data from the *condition commands. This is in similar format
+to the -replies, where 1 is the first condition.</p>
+<p><strong>system-&gt;{codes}</strong> - The contents of any system codes provided by &amp;perl commands.</p>
+<p>
+</p>
+<h2><a name="sorted_arrays">Sorted Arrays</a></h2>
+<p>The first keys under <strong>$rs-&gt;{array}</strong> are the topic names, as they are in $rs-&gt;{replies}.
+But the contents of each topic key is an array ref of the sorted triggers.</p>
+<p>Generally, you shouldn't have to worry about modifying this variable directly--just
+call <code>sortReplies()</code> and it will manage it automatically.</p>
+<p>
+</p>
+<h2><a name="examples">Examples</a></h2>
+<pre>
+  // RiveScript Code
+  + my name is *
+  - &lt;star&gt;, nice to meet you!
+  - Nice to meet you, &lt;star&gt;.</pre>
+<pre>
+  # Perl code. Get the value of the second reply.
+  $rs-&gt;{replies}-&gt;{random}-&gt;{'my name is *'}-&gt;{2}</pre>
+<pre>
+  // RiveScript Code
+  &gt; topic favorites
+    + *(@colors)*
+    - I like &lt;star2&gt; too. :-)
+    &amp; &amp;main::log('&lt;id&gt; likes &lt;star2&gt;')
+  &lt; topic</pre>
+<pre>
+  # Perl code. Get the perl data from that trigger.
+  $rs-&gt;{replies}-&gt;{favorites}-&gt;{'*(@colors)*'}-&gt;{system}-&gt;{codes}</pre>
+<pre>
+  // RiveScript Code
+  + *
+  % whos there
+  - &lt;star&gt; who?</pre>
+<pre>
+  # Perl code. Access this one's reply.
+  $rs-&gt;{replies}-&gt;{'__that__whos there'}-&gt;{1}</pre>
+<p>
+</p>
+<hr />
 <h1><a name="reserved_variables">RESERVED VARIABLES</a></h1>
 <p>The following are all the reserved variables and values within RiveScript's
 processor.</p>
@@ -876,8 +977,17 @@ decide if it should give a reply.</p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
 <pre>
+  Version 0.07
+  - Added write() method
+  - reply() method now can take tags to force scalar return or to ignore
+    sentence-splitting.
+  - loadDirectory() method can now take a list of specific file extensions
+    to look for.
+  - Cleaned up some leftover debug prints from last release (sorry about that!)</pre>
+<pre>
   Version 0.06
   - Extended ^CONTINUE to cover more commands
+  - Added \s and \n tags
   - Revised POD</pre>
 <pre>
   Version 0.05

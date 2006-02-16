@@ -1,5 +1,13 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.07  Wed Feb 15 22:15:00 2006
+	- Added write() method
+	- reply() method now can take tags to force scalar return or to ignore
+		sentence-splitting.
+	- loadDirectory() method can now take a list of specific file extensions
+		to look for.
+	- Cleaned up some leftover debug prints from last release (sorry about that!)
+
 0.06  Mon Feb 13 06:56:00 2006
 	- Extended ^CONTINUE to cover more commands
 	- Revised POD

@@ -52,6 +52,8 @@
 ! sub could've = could have
 ! sub should've = should have
 ! sub would've = would have
+! sub ;) = wink
+! sub ;-) = wink
 
 /* Set some botvariables */
 

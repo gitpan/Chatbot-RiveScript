@@ -41,7 +41,7 @@
 		<li><a href="#intreply__user_id__message_">intReply (USER_ID, MESSAGE)</a></li>
 		<li><a href="#splitsentences__string_">splitSentences (STRING)</a></li>
 		<li><a href="#formatmessage__string_">formatMessage (STRING)</a></li>
-		<li><a href="#mergewildcards__string__hash_">mergeWildcards (STRING, HASH)</a></li>
+		<li><a href="#mergewildcards__string__array_">mergeWildcards (STRING, ARRAY)</a></li>
 		<li><a href="#stringutil__type__string_">stringUtil (TYPE, STRING)</a></li>
 	</ul>
 
@@ -114,6 +114,7 @@
 	<li><a href="#known_bugs">KNOWN BUGS</a></li>
 	<li><a href="#changes">CHANGES</a></li>
 	<li><a href="#todo_list">TO-DO LIST</a></li>
+	<li><a href="#special_thanks">SPECIAL THANKS</a></li>
 	<li><a href="#author">AUTHOR</a></li>
 	<li><a href="#copyright_and_license">COPYRIGHT AND LICENSE</a></li>
 </ul>
@@ -156,11 +157,14 @@
 </p>
 <hr />
 <h1><a name="description">DESCRIPTION</a></h1>
-<p>RiveScript was formerly known as Chatbot::Alpha. However, Chatbot::Alpha's
-syntax is <strong>not</strong> compatible with RiveScript.</p>
 <p>RiveScript is a simple input/response language. It is simple, easy to learn,
 and mimics and perhaps even surpasses the power of AIML (Artificial Intelligence
-Markup Language).</p>
+Markup Language). RiveScript was initially created as a reply language for
+chatterbots, but it has also been used for more complex things above and beyond
+that.</p>
+<p>RiveScript was originally known as Chatbot::Alpha but was reprogrammed to
+add more flexibility and power to it. While their syntaces are similar,
+Alpha code is not entirely compatible with RiveScript.</p>
 <p>
 </p>
 <hr />
@@ -201,7 +205,8 @@ replies will not be matchable because the sort cache hasn't updated.</p>
 <p>Get a reply from the bot. This will return an array. The values of this
 array would be all the replies (i.e. if you use {nextreply} in a response
 to return multiple).</p>
-<p><strong>%TAGS</strong> is optionally a string of special reply tags:</p>
+<p><strong>%TAGS</strong> is optionally a string of special reply tags, each value is a
+boolean (1 or 0, all default to 0):</p>
 <pre>
   scalar   -- Forces a scalar return of all replies found. The method
               will return a scalar rather than an array.
@@ -210,7 +215,7 @@ to return multiple).</p>
               where it is unmatchable because ; is a sentence-splitter.</pre>
 <pre>
   retry    -- You should NEVER set this argument. This is used internally
-              so the module know it's on a retry run (if a reply isn't
+              so the module knows it's on a retry run (if a reply isn't
               found, it tries again but sets no_split to true).</pre>
 <p>
 </p>
@@ -276,9 +281,10 @@ for passing in badly formatted data.</p>
 <p>Formats the message (runs substitutions, removes punctuation, etc)</p>
 <p>
 </p>
-<h2><a name="mergewildcards__string__hash_">mergeWildcards (STRING, HASH)</a></h2>
-<p>Merges the hash from HASH into STRING, where the keys in HASH should be
-from 1 to 100, for the wildcard captor.</p>
+<h2><a name="mergewildcards__string__array_">mergeWildcards (STRING, ARRAY)</a></h2>
+<p>Merges the values from ARRAY into STRING, where the items in ARRAY
+correspond to a captured value from $1 to $100+. The first item in the
+array should be blank; there is no such thing as a &lt;star0&gt;.</p>
 <p>
 </p>
 <h2><a name="stringutil__type__string_">stringUtil (TYPE, STRING)</a></h2>
@@ -327,6 +333,45 @@ to define variables and arrays. Their format is as follows:
   array  - An array
   sub    - A substitution pattern
   person - A person substitution.</pre>
+</dd>
+<dd>
+<p>Some examples:</p>
+</dd>
+<dd>
+<pre>
+  // Set global vars
+  ! global debug = 1
+  ! global split_sentences = 1
+  ! global sentence_splitters = . ! ; ?</pre>
+</dd>
+<dd>
+<pre>
+  // Set bot vars
+  ! var botname   = Casey Rive
+  ! var botage    = 14
+  ! var botgender = male</pre>
+</dd>
+<dd>
+<pre>
+  // Some substitutions
+  ! sub can't = can not
+  ! sub i'm   = i am</pre>
+</dd>
+<dd>
+<pre>
+  // Person substitutions
+  ! person i   = you
+  ! person you = me
+  ! person am  = are
+  ! person are = am</pre>
+</dd>
+<dd>
+<p><strong>Note:</strong> For arrays, you can have multi-word items if you separate the entries
+with a pipe (``|'') symbol rather than a space.</p>
+</dd>
+<dd>
+<p><strong>Note:</strong> To delete a variable, set its value to ``undef'' and its internal hashref
+key will be deleted altogether.</p>
 </dd>
 <dd>
 <p>See also: <a href="#environmental_variables">ENVIRONMENTAL VARIABLES</a> and <a href="#person_substitution">PERSON SUBSTITUTION</a>.</p>
@@ -598,7 +643,24 @@ best way to explain how this works is by example.</p>
   // Now the user can tell us their favorite color from the array
   + my favorite color is (@colors)
   - Really! Mine is &lt;star1&gt; too!</pre>
-<p>It turns your array into regexp form, <strong>(red|blue|green|yellow|...)</strong> before matching
+<p>If you want an array to be matchable, enclose it in parenthesis. This will allow
+its value to be put into a &lt;star&gt; tag, as in the above example. If you
+don't include the parenthesis, its value won't be matchable. For an example of
+the difference:</p>
+<pre>
+  If the input is &quot;sometimes I am a tool&quot;...</pre>
+<pre>
+  ! array be = am are is was were</pre>
+<pre>
+  + *\bi @be *
+      &lt;star1&gt; = ''
+      &lt;star2&gt; = 'a tool'</pre>
+<pre>
+  + *\bi (@be) *
+      &lt;star1&gt; = 'sometimes'
+      &lt;star2&gt; = 'am'
+      &lt;star3&gt; = 'a tool'</pre>
+<p>It turns your array into regexp form, <strong>(?:red|blue|green|yellow|...)</strong> before matching
 so it saves you a lot of work there. Not to mention arrays can be used in any number
 of triggers! Just imagine how many triggers you can come up with where a color name
 would be needed...</p>
@@ -645,7 +707,7 @@ are executed before any request.</p>
     + request
     - {ok}
   &lt; begin</pre>
-<p>Begin statements are sort of like topics. They are called first. If the response
+<p>Begin statements are sort of like topics, but are always called first. If the response
 given contains {ok} in it, then the module knows it's allowed to get a reply.
 Also note that {ok} is replaced with the response. In this way, <strong>begin</strong> might be
 useful to format all responses in one way. For a good example:</p>
@@ -796,8 +858,16 @@ you said what's up and then I said not much''</p>
 <p>If the variable is undefined, it is set to 0 before the math is done on it.
 If you try to modify a non-numerical variable, the operation will fail and a
 little note of <strong>(Var=NaN)</strong> will appear in place of the tag.</p>
-<p>Likewise, if you try to modify a variable with a non-numerical value,
-<strong>(Value=NaN)</strong> will be inputted instead.</p>
+<p>Likewise, if you try to modify a variable by inputting a non-numerical value
+into the tag, <strong>(Value=NaN)</strong> would be returned instead. Two examples of how
+to trigger these:</p>
+<pre>
+  + add 5 to my name
+  - &lt;add name=5&gt;Tried.</pre>
+<pre>
+  + add hello to my age
+  - &lt;add age=hello&gt;Tried.</pre>
+<p>Where ``name'' would be the user's name and ``age'' is their (numerical) age.</p>
 <p>
 </p>
 <h2><a name="_topic_____">{topic=...}</a></h2>
@@ -1081,6 +1151,14 @@ decide if it should give a reply.</p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
 <pre>
+  Version 0.09
+  - $1 to $100+ are now done using an array rather than a hash. Theoretically
+    this allows any number of stars, even greater than 100.
+  - Arrays in triggers have been modified. An array in parenthesis (the former
+    requirement) will make the array matchable in &lt;star#&gt; tags. An array outside
+    of parenthesis makes it NOT matchable.
+  - Minor code improvements for readibility purposes.</pre>
+<pre>
   Version 0.08
   - Added &lt;add&gt;, &lt;sub&gt;, &lt;mult&gt;, and &lt;div&gt; tags.
   - Added environmental variable support.
@@ -1132,6 +1210,12 @@ decide if it should give a reply.</p>
 <hr />
 <h1><a name="todo_list">TO-DO LIST</a></h1>
 <p>Feel free to offer any ideas. ;)</p>
+<p>
+</p>
+<hr />
+<h1><a name="special_thanks">SPECIAL THANKS</a></h1>
+<p>Special thanks goes out to <strong>jeffohrt</strong> and <strong>harleypig</strong> of the AiChaos
+Forum for helping so much with the development of RiveScript.</p>
 <p>
 </p>
 <hr />

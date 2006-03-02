@@ -1,5 +1,13 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.09 Thu Mar  2 18:43:00 2006
+	- $1 to $100+ are now done using an array rather than a hash. Theoretically
+		this allows any number of stars, even greater than 100.
+	- Arrays in triggers have been modified. An array in parenthesis (the former
+		requirement) will make the array matchable in <star#> tags. An array outside
+		of parenthesis makes it NOT matchable.
+	- Minor code improvements for readibility purposes.
+
 0.08 Thu Feb 16 17:37:00 2006
 	- Added <add>, <sub>, <mult>, and <div> tags.
 	- Added environmental variable support.

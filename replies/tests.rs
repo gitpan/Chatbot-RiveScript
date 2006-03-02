@@ -221,8 +221,11 @@
    ## Test Input-Arrays        ##
    ############################## */
 
-+ what color is my (@colors) *
++ what color is my @colors *
 - Your <star2> is <star1>, silly!
+
++ i * the color (?:@colors)
+- I like it too. (star = <star>; 2 = <star2>)
 
 /* ##############################
    ## Follow-up on ^ var conc. ##
@@ -326,3 +329,17 @@
 
 + get system path
 - The system path is: <bot ENV_SYS_PATH>
+
+/* ##############################
+   ## Test Empty Wildcard Bug  ##
+   ############################## */
+
+// As far as v. 0.06, if the first * was blank, <star1> would match the
+// value of the second * rather than being blank.
++ *aol*
+- Wildcard test matched. Star1 = <star1>; Star2 = <star2>
+
+! array be = am are is was were
+
++ *i (@be)*
+- Do you wish to believe you are {person}<star3>{/person}?

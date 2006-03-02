@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 sub new {
 	my $proto = shift;
@@ -769,7 +769,7 @@ sub intReply {
 	}
 
 	# Create variables.
-	my %stars = (); # Wildcard captors
+	my @stars = (); # Wildcard captors
 	my $reply; # The final reply.
 
 	# Topics?
@@ -811,7 +811,7 @@ sub intReply {
 			last if defined $reply;
 			# Slightly format the trigger to be regexp friendly.
 			my $regexp = $in;
-			$regexp =~ s~\*~\(\.\*\?\)~g;
+			$regexp =~ s~\*~(.*?)~g;
 
 			# Run optional modifiers.
 			while ($regexp =~ /\[(.*?)\]/i) {
@@ -831,16 +831,15 @@ sub intReply {
 			}
 
 			# Filter in arrays.
-			while ($regexp =~ /\(\@(.*?)\)/i) {
+			while ($regexp =~ /\@(.+?)\b/i) {
 				my $o = $1;
 				my $name = $o;
 				my $rep = '';
 				if (exists $self->{botarrays}->{$name}) {
-					$rep = '(' . join ('|', @{$self->{botarrays}->{$name}}) . ')';
+					$rep = '(?:' . join ('|', @{$self->{botarrays}->{$name}}) . ')';
+					print "Filtered array = $rep\n";
 				}
-				$regexp =~ s/\(\@(.*?)\)/$rep/i;
-
-				# print "Filtered in array $rep\n";
+				$regexp =~ s/\@$o\b/$rep/ig;
 			}
 
 			# Filter in botvariables.
@@ -857,17 +856,15 @@ sub intReply {
 			# See if it's a match.
 			if ($msg =~ /^$regexp$/i) {
 				# Collect the stars.
-				# print "\$1 = $1\n";
-				for (my $i = 1; $i <= 100; $i++) {
-					$stars{$i} = eval ('$' . $i);
-				}
+				@stars = $msg =~ /^$regexp$/i;
+				unshift (@stars, ''); # Make $stars[1] equal <star1>
 
 				# A solid redirect? (@ command)
 				if (exists $self->{replies}->{$topic}->{$in}->{redirect}) {
 					my $redirect = $self->{replies}->{$topic}->{$in}->{redirect};
 
 					# Filter wildcards into it.
-					$redirect = $self->mergeWildcards ($redirect,%stars);
+					$redirect = $self->mergeWildcards ($redirect,\@stars);
 
 					# Plus a loop.
 					$self->{loops}++;
@@ -1002,23 +999,6 @@ sub intReply {
 								}
 							}
 						}
-
-					#	my ($var,$value) = split(/=/, $cond, 2);
-					#	# Check variables.
-					#	if (exists $self->{botvars}->{$var} || exists $self->{uservars}->{$id}->{$var}) {
-					#		if (exists $self->{botvars}->{$var}) {
-					#			if (($value =~ /[^0-9]/ && $self->{botvars}->{$var} eq $value) ||
-					#			($self->{botvars}->{$var} eq $value)) {
-					#				$reply = $happens;
-					#			}
-					#		}
-					#		else {
-					#			if (($value =~ /[^0-9]/ && $self->{uservars}->{$id}->{$var} eq $value) ||
-					#			($self->{uservars}->{$id}->{$var} eq $value)) {
-					#				$reply = $happens;
-					#			}
-					#		}
-					#	}
 					}
 				}
 
@@ -1065,7 +1045,7 @@ sub intReply {
 	# A reply?
 	if (defined $reply) {
 		# Filter in stars...
-		$reply = $self->mergeWildcards ($reply,%stars);
+		$reply = $self->mergeWildcards ($reply,\@stars);
 	}
 	else {
 		# Were they in a possibly broken topic?
@@ -1424,13 +1404,9 @@ sub person {
 }
 
 sub mergeWildcards {
-	my ($self,$string,%stars) = @_;
+	my ($self,$string,$stars) = @_;
 
-	foreach my $star (keys %stars) {
-		# print "Converting <star$star> to $stars{$star}\n" if defined $stars{$star};
-		$string =~ s/<star$star>/$stars{$star}/ig;
-	}
-	$string =~ s/<star>/$stars{1}/ig if defined $stars{1};
+	$string =~ s/<star(\d+)?>/$$stars[$1?$1:1] || ''/eig;
 
 	return $string;
 }
@@ -1567,12 +1543,15 @@ Chatbot::RiveScript - Rendering Intelligence Very Easily
 
 =head1 DESCRIPTION
 
-RiveScript was formerly known as Chatbot::Alpha. However, Chatbot::Alpha's
-syntax is B<not> compatible with RiveScript.
-
 RiveScript is a simple input/response language. It is simple, easy to learn,
 and mimics and perhaps even surpasses the power of AIML (Artificial Intelligence
-Markup Language).
+Markup Language). RiveScript was initially created as a reply language for
+chatterbots, but it has also been used for more complex things above and beyond
+that.
+
+RiveScript was originally known as Chatbot::Alpha but was reprogrammed to
+add more flexibility and power to it. While their syntaces are similar,
+Alpha code is not entirely compatible with RiveScript.
 
 =head1 PUBLIC METHODS
 
@@ -1612,7 +1591,8 @@ Get a reply from the bot. This will return an array. The values of this
 array would be all the replies (i.e. if you use {nextreply} in a response
 to return multiple).
 
-B<%TAGS> is optionally a string of special reply tags:
+B<%TAGS> is optionally a string of special reply tags, each value is a
+boolean (1 or 0, all default to 0):
 
   scalar   -- Forces a scalar return of all replies found. The method
               will return a scalar rather than an array.
@@ -1621,7 +1601,7 @@ B<%TAGS> is optionally a string of special reply tags:
               where it is unmatchable because ; is a sentence-splitter.
 
   retry    -- You should NEVER set this argument. This is used internally
-              so the module know it's on a retry run (if a reply isn't
+              so the module knows it's on a retry run (if a reply isn't
               found, it tries again but sets no_split to true).
 
 =head2 search (STRING)
@@ -1687,10 +1667,11 @@ Splits string at the sentence-splitters and returns an array.
 
 Formats the message (runs substitutions, removes punctuation, etc)
 
-=head2 mergeWildcards (STRING, HASH)
+=head2 mergeWildcards (STRING, ARRAY)
 
-Merges the hash from HASH into STRING, where the keys in HASH should be
-from 1 to 100, for the wildcard captor.
+Merges the values from ARRAY into STRING, where the items in ARRAY
+correspond to a captured value from $1 to $100+. The first item in the
+array should be blank; there is no such thing as a E<lt>star0E<gt>.
 
 =head2 stringUtil (TYPE, STRING)
 
@@ -1732,6 +1713,34 @@ The supported types are as follows:
   array  - An array
   sub    - A substitution pattern
   person - A person substitution.
+
+Some examples:
+
+  // Set global vars
+  ! global debug = 1
+  ! global split_sentences = 1
+  ! global sentence_splitters = . ! ; ?
+
+  // Set bot vars
+  ! var botname   = Casey Rive
+  ! var botage    = 14
+  ! var botgender = male
+
+  // Some substitutions
+  ! sub can't = can not
+  ! sub i'm   = i am
+
+  // Person substitutions
+  ! person i   = you
+  ! person you = me
+  ! person am  = are
+  ! person are = am
+
+B<Note:> For arrays, you can have multi-word items if you separate the entries
+with a pipe ("|") symbol rather than a space.
+
+B<Note:> To delete a variable, set its value to "undef" and its internal hashref
+key will be deleted altogether.
 
 See also: L<"ENVIRONMENTAL VARIABLES"> and L<"PERSON SUBSTITUTION">.
 
@@ -1954,7 +1963,25 @@ best way to explain how this works is by example.
   + my favorite color is (@colors)
   - Really! Mine is <star1> too!
 
-It turns your array into regexp form, B<(red|blue|green|yellow|...)> before matching
+If you want an array to be matchable, enclose it in parenthesis. This will allow
+its value to be put into a E<lt>starE<gt> tag, as in the above example. If you
+don't include the parenthesis, its value won't be matchable. For an example of
+the difference:
+
+  If the input is "sometimes I am a tool"...
+
+  ! array be = am are is was were
+
+  + *\bi @be *
+      <star1> = ''
+      <star2> = 'a tool'
+
+  + *\bi (@be) *
+      <star1> = 'sometimes'
+      <star2> = 'am'
+      <star3> = 'a tool'
+
+It turns your array into regexp form, B<(?:red|blue|green|yellow|...)> before matching
 so it saves you a lot of work there. Not to mention arrays can be used in any number
 of triggers! Just imagine how many triggers you can come up with where a color name
 would be needed...
@@ -2009,7 +2036,7 @@ B<How to define a BEGIN statement>
     - {ok}
   < begin
 
-Begin statements are sort of like topics. They are called first. If the response
+Begin statements are sort of like topics, but are always called first. If the response
 given contains {ok} in it, then the module knows it's allowed to get a reply.
 Also note that {ok} is replaced with the response. In this way, B<begin> might be
 useful to format all responses in one way. For a good example:
@@ -2171,8 +2198,17 @@ If the variable is undefined, it is set to 0 before the math is done on it.
 If you try to modify a non-numerical variable, the operation will fail and a
 little note of B<(Var=NaN)> will appear in place of the tag.
 
-Likewise, if you try to modify a variable with a non-numerical value,
-B<(Value=NaN)> will be inputted instead.
+Likewise, if you try to modify a variable by inputting a non-numerical value
+into the tag, B<(Value=NaN)> would be returned instead. Two examples of how
+to trigger these:
+
+  + add 5 to my name
+  - <add name=5>Tried.
+
+  + add hello to my age
+  - <add age=hello>Tried.
+
+Where "name" would be the user's name and "age" is their (numerical) age.
 
 =head2 {topic=...}
 
@@ -2464,6 +2500,14 @@ None yet known.
 
 =head1 CHANGES
 
+  Version 0.09
+  - $1 to $100+ are now done using an array rather than a hash. Theoretically
+    this allows any number of stars, even greater than 100.
+  - Arrays in triggers have been modified. An array in parenthesis (the former
+    requirement) will make the array matchable in <star#> tags. An array outside
+    of parenthesis makes it NOT matchable.
+  - Minor code improvements for readibility purposes.
+
   Version 0.08
   - Added <add>, <sub>, <mult>, and <div> tags.
   - Added environmental variable support.
@@ -2514,6 +2558,11 @@ None yet known.
 =head1 TO-DO LIST
 
 Feel free to offer any ideas. ;)
+
+=head1 SPECIAL THANKS
+
+Special thanks goes out to B<jeffohrt> and B<harleypig> of the AiChaos
+Forum for helping so much with the development of RiveScript.
 
 =head1 AUTHOR
 

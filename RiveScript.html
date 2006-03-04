@@ -20,29 +20,29 @@
 
 		<li><a href="#new">new</a></li>
 		<li><a href="#setsubroutine__object_name____coderef_">setSubroutine (OBJECT_NAME =&gt; CODEREF)</a></li>
-		<li><a href="#loaddirectory__directory___exts__">loadDirectory (DIRECTORY[, EXTS])</a></li>
-		<li><a href="#loadfile__filepath___stream__">loadFile (FILEPATH[, STREAM])</a></li>
-		<li><a href="#stream__code_">stream (CODE)</a></li>
+		<li><a href="#loaddirectory___directory____exts__">loadDirectory ($DIRECTORY[, @EXTS])</a></li>
+		<li><a href="#loadfile___filepath____stream__">loadFile ($FILEPATH[, $STREAM])</a></li>
+		<li><a href="#stream___code_">stream ($CODE)</a></li>
 		<li><a href="#sortreplies">sortReplies</a></li>
-		<li><a href="#reply__user_id__message____tags__">reply (USER_ID, MESSAGE[, %TAGS])</a></li>
-		<li><a href="#search__string_">search (STRING)</a></li>
-		<li><a href="#write___filepath__">write ([FILEPATH])</a></li>
+		<li><a href="#reply___user_id___message____tags__">reply ($USER_ID, $MESSAGE[, %TAGS])</a></li>
+		<li><a href="#search___string_">search ($STRING)</a></li>
+		<li><a href="#write____filepath__">write ([$FILEPATH])</a></li>
 		<li><a href="#setglobal__variable____value______">setGlobal (VARIABLE =&gt; VALUE, ...)</a></li>
 		<li><a href="#setvariable__variable____value______">setVariable (VARIABLE =&gt; VALUE, ...)</a></li>
 		<li><a href="#setsubstitution__before____after______">setSubstitution (BEFORE =&gt; AFTER, ...)</a></li>
-		<li><a href="#setuservar__user_id__variable____value______">setUservar (USER_ID, VARIABLE =&gt; VALUE, ...)</a></li>
-		<li><a href="#getuservars__user_id_">getUservars (USER_ID)</a></li>
+		<li><a href="#setuservar___user_id__variable____value______">setUservar ($USER_ID, VARIABLE =&gt; VALUE, ...)</a></li>
+		<li><a href="#getuservars____user_id__">getUservars ([$USER_ID])</a></li>
 	</ul>
 
 	<li><a href="#private_methods">PRIVATE METHODS</a></li>
 	<ul>
 
-		<li><a href="#debug__message_">debug (MESSAGE)</a></li>
-		<li><a href="#intreply__user_id__message_">intReply (USER_ID, MESSAGE)</a></li>
-		<li><a href="#splitsentences__string_">splitSentences (STRING)</a></li>
-		<li><a href="#formatmessage__string_">formatMessage (STRING)</a></li>
-		<li><a href="#mergewildcards__string__array_">mergeWildcards (STRING, ARRAY)</a></li>
-		<li><a href="#stringutil__type__string_">stringUtil (TYPE, STRING)</a></li>
+		<li><a href="#debug___message_">debug ($MESSAGE)</a></li>
+		<li><a href="#intreply___user_id___message_">intReply ($USER_ID, $MESSAGE)</a></li>
+		<li><a href="#splitsentences___string_">splitSentences ($STRING)</a></li>
+		<li><a href="#formatmessage___string_">formatMessage ($STRING)</a></li>
+		<li><a href="#mergewildcards___string___array_">mergeWildcards ($STRING, $ARRAY)</a></li>
+		<li><a href="#stringutil___type___string_">stringUtil ($TYPE, $STRING)</a></li>
 	</ul>
 
 	<li><a href="#format">FORMAT</a></li>
@@ -71,6 +71,7 @@
 		<li><a href="#_add____sub____mult____div_">&lt;add&gt;, &lt;sub&gt;, &lt;mult&gt;, &lt;div&gt;</a></li>
 		<li><a href="#_topic_____">{topic=...}</a></li>
 		<li><a href="#_nextreply_">{nextreply}</a></li>
+		<li><a href="#_weight_____">{weight=...}</a></li>
 		<li><a href="#______">{@...}</a></li>
 		<li><a href="#______">{!...}</a></li>
 		<li><a href="#_random______random_">{random}...{/random}</a></li>
@@ -79,6 +80,7 @@
 		<li><a href="#_sentence______sentence_">{sentence}...{/sentence}</a></li>
 		<li><a href="#_uppercase______uppercase_">{uppercase}...{/uppercase}</a></li>
 		<li><a href="#_lowercase______lowercase_">{lowercase}...{/lowercase}</a></li>
+		<li><a href="#_ok_">{ok}</a></li>
 		<li><a href="#_s">\s</a></li>
 		<li><a href="#_n">\n</a></li>
 	</ul>
@@ -152,7 +154,7 @@
 <pre>
   # Grab a response.
   my @reply = $rs-&gt;reply ('localhost','Hello RiveScript!');
-  print $reply[0] . &quot;\n&quot;;</pre>
+  print join (&quot;\n&quot;,@reply) . &quot;\n&quot;;</pre>
 <p>
 </p>
 <hr />
@@ -179,17 +181,17 @@ Alpha code is not entirely compatible with RiveScript.</p>
 <p>Define a macro (see Object Macros)</p>
 <p>
 </p>
-<h2><a name="loaddirectory__directory___exts__">loadDirectory (DIRECTORY[, EXTS])</a></h2>
+<h2><a name="loaddirectory___directory____exts__">loadDirectory ($DIRECTORY[, @EXTS])</a></h2>
 <p>Load a directory of RiveScript files. EXTS is optionally an array of file
 extensions to load, in the format <strong>(.rs .txt .etc)</strong>. Default is just ``.rs''</p>
 <p>
 </p>
-<h2><a name="loadfile__filepath___stream__">loadFile (FILEPATH[, STREAM])</a></h2>
+<h2><a name="loadfile___filepath____stream__">loadFile ($FILEPATH[, $STREAM])</a></h2>
 <p>Load a single file. Don't worry about the STREAM argument, it is handled
 in the <code>stream()</code> method.</p>
 <p>
 </p>
-<h2><a name="stream__code_">stream (CODE)</a></h2>
+<h2><a name="stream___code_">stream ($CODE)</a></h2>
 <p>Stream RiveScript code directly into the module.</p>
 <p>
 </p>
@@ -201,7 +203,7 @@ yourself. For example, if you sort them and then load new replies, the new
 replies will not be matchable because the sort cache hasn't updated.</p>
 <p>
 </p>
-<h2><a name="reply__user_id__message____tags__">reply (USER_ID, MESSAGE[, %TAGS])</a></h2>
+<h2><a name="reply___user_id___message____tags__">reply ($USER_ID, $MESSAGE[, %TAGS])</a></h2>
 <p>Get a reply from the bot. This will return an array. The values of this
 array would be all the replies (i.e. if you use {nextreply} in a response
 to return multiple).</p>
@@ -219,13 +221,13 @@ boolean (1 or 0, all default to 0):</p>
               found, it tries again but sets no_split to true).</pre>
 <p>
 </p>
-<h2><a name="search__string_">search (STRING)</a></h2>
+<h2><a name="search___string_">search ($STRING)</a></h2>
 <p>Search all loaded replies for every trigger that STRING matches. Returns an
 array of results, containing the trigger, what topic it was under, and the
 reference to its file and line number.</p>
 <p>
 </p>
-<h2><a name="write___filepath__">write ([FILEPATH])</a></h2>
+<h2><a name="write____filepath__">write ([$FILEPATH])</a></h2>
 <p>Outputs the current contents of the loaded replies into a single file. This
 is useful for if your application dynamically learns replies by editing the
 loaded hashrefs. It will write all replies to the file under their own topics...
@@ -247,15 +249,14 @@ ignored, because the module doesn't pay attention to them at loading time anyway
 <p>Set a substitution setting (alias for <strong>! sub</strong>)</p>
 <p>
 </p>
-<h2><a name="setuservar__user_id__variable____value______">setUservar (USER_ID, VARIABLE =&gt; VALUE, ...)</a></h2>
+<h2><a name="setuservar___user_id__variable____value______">setUservar ($USER_ID, VARIABLE =&gt; VALUE, ...)</a></h2>
 <p>Set a user variable (alias for &lt;set var=value&gt;)</p>
 <p>
 </p>
-<h2><a name="getuservars__user_id_">getUservars (USER_ID)</a></h2>
-<p>Get all variables for a user, returns a hash reference. (alias for &lt;get var&gt;
-for every variable). If you don't provide a USER_ID, or provide '__rivescript__'
-(see Reserved Variables), it will return an array reference of hash references,
-to get variables of all users.</p>
+<h2><a name="getuservars____user_id__">getUservars ([$USER_ID])</a></h2>
+<p>Get all uservars for a user. Returns a hashref of the variables. If you don't
+pass in a $USER_ID, it will return a hashref of hashrefs for each user (first
+level being their ID, second level being their variables).</p>
 <p>
 </p>
 <hr />
@@ -263,31 +264,31 @@ to get variables of all users.</p>
 <p>These methods are called on internally and should not be called by you.</p>
 <p>
 </p>
-<h2><a name="debug__message_">debug (MESSAGE)</a></h2>
+<h2><a name="debug___message_">debug ($MESSAGE)</a></h2>
 <p>Print a debug message.</p>
 <p>
 </p>
-<h2><a name="intreply__user_id__message_">intReply (USER_ID, MESSAGE)</a></h2>
+<h2><a name="intreply___user_id___message_">intReply ($USER_ID, $MESSAGE)</a></h2>
 <p>This should not be called. Call <strong>reply</strong> instead. This method assumes
 that the variables are neatly formatted and may cause serious consequences
 for passing in badly formatted data.</p>
 <p>
 </p>
-<h2><a name="splitsentences__string_">splitSentences (STRING)</a></h2>
+<h2><a name="splitsentences___string_">splitSentences ($STRING)</a></h2>
 <p>Splits string at the sentence-splitters and returns an array.</p>
 <p>
 </p>
-<h2><a name="formatmessage__string_">formatMessage (STRING)</a></h2>
+<h2><a name="formatmessage___string_">formatMessage ($STRING)</a></h2>
 <p>Formats the message (runs substitutions, removes punctuation, etc)</p>
 <p>
 </p>
-<h2><a name="mergewildcards__string__array_">mergeWildcards (STRING, ARRAY)</a></h2>
+<h2><a name="mergewildcards___string___array_">mergeWildcards ($STRING, $ARRAY)</a></h2>
 <p>Merges the values from ARRAY into STRING, where the items in ARRAY
 correspond to a captured value from $1 to $100+. The first item in the
 array should be blank; there is no such thing as a &lt;star0&gt;.</p>
 <p>
 </p>
-<h2><a name="stringutil__type__string_">stringUtil (TYPE, STRING)</a></h2>
+<h2><a name="stringutil___type___string_">stringUtil ($TYPE, $STRING)</a></h2>
 <p>Called on for string format tags (uppercase, lowercase, formal, sentence).</p>
 <p>
 </p>
@@ -343,6 +344,11 @@ to define variables and arrays. Their format is as follows:
   ! global debug = 1
   ! global split_sentences = 1
   ! global sentence_splitters = . ! ; ?</pre>
+</dd>
+<dd>
+<pre>
+  // Setup a handler for macro failures.
+  ! global macro_failure = &lt;b&gt;ERROR: Macro Failure&lt;/b&gt;</pre>
 </dd>
 <dd>
 <pre>
@@ -450,8 +456,6 @@ other uses that we'll get into later.
 </dt>
 <dd>
 The ^Continue command is for extending the previous command down a line.
-Normally, this would only reply to -REPLY but in <strong>Version 0.06</strong> this
-has expanded to handle extensions of multiple types of commands.
 </dd>
 <dd>
 <p>The commands that can be continued with ^Continue:</p>
@@ -468,8 +472,8 @@ has expanded to handle extensions of multiple types of commands.
 </dd>
 <dd>
 <p>Sometimes your -REPLY is too long to fit on one line, and you don't like
-the idea of having a horizontal scrollbar. The ^ command will continue on
-from the last -REPLY. For example:</p>
+the idea of having a horizontal scrollbar on your text editor.
+The ^ command will continue on from the last -REPLY. For example:</p>
 </dd>
 <dd>
 <pre>
@@ -481,8 +485,7 @@ from the last -REPLY. For example:</p>
   ^ is not in the picture today.</pre>
 </dd>
 <dd>
-<p>Here are some examples of the other uses of ^Continue new with version
-0.06:</p>
+<p>Here are some examples of the other uses of ^Continue:</p>
 </dd>
 <dd>
 <pre>
@@ -506,12 +509,6 @@ from the last -REPLY. For example:</p>
   + how much wood
   @ how much wood would a woodchuck\s
   ^ chuck if a woodchuck could chuck wood</pre>
-</dd>
-<dd>
-<p><strong>Change Note:</strong> In version 0.06, a continuation of a -REPLY no longer assumes
-a space between the parts of the response. For an example, look up at the
-``tell me a poem'' example just above. You now need to include a \s (see <a href="#tags">TAGS</a>)
-to include a white space.</p>
 </dd>
 <p></p>
 <dt><strong><a name="item__40__28redirect_29"><strong>@ (Redirect)</strong></a></strong><br />
@@ -807,11 +804,25 @@ arguments. The method would be the bit following the dot (i.e. ``cityname'',
 &lt;star1&gt;.</p>
 <p>Whatever weather_lookup would return is inserted into the reply in place of the
 macro call.</p>
+<p><strong>Note:</strong> If a macro does not exist, has faulty code, or does not return a reply,
+the contents of global ``macro_failure'' will be inserted instead. At this time the
+module is unable to tell you which of the three errors is the cause.</p>
 <p>
 </p>
 <hr />
 <h1><a name="tags">TAGS</a></h1>
-<p>Special tags can be inserted into replies and redirections. They are as follows:</p>
+<p>Special tags can be inserted into replies and redirections. Tags either have
+&lt;angle brackets&gt; or {curly brackets}. The &lt;angle brackets&gt; are
+generally for things that insert something back into the message, such as
+&lt;star&gt;, &lt;id&gt;, or &LT;input5&gt;. The {curly brackets} are
+generally for things that operate in silence and don't output anything, such
+as {topic} which modifies the topic, or they're modifiers of text, such as
+{random} and {uppercase}.</p>
+<p>Also, tags closely tied to others in function will have the same symbols as
+them. For instance, &lt;set&gt; doesn't output anything but is close in
+function to &lt;get&gt;. This is just an explanation of my choice of symbols.
+That being said, you can ignore these two paragraphs. ;)</p>
+<p>The supported tags are as follows:</p>
 <p>
 </p>
 <h2><a name="_star____star1____star100_">&lt;star&gt;, &lt;star1&gt; - &lt;star100&gt;</a></h2>
@@ -881,6 +892,12 @@ one is evaluated.</p>
 to return multiple responses.</p>
 <p>
 </p>
+<h2><a name="_weight_____">{weight=...}</a></h2>
+<p>A -REPLY can have a weight tag applied to it to change the probability of it being
+chosen (when there is more than one reply that could be randomly chosen).
+See <a href="#complexities_of_the_response">COMPLEXITIES OF THE RESPONSE</a>.</p>
+<p>
+</p>
 <h2><a name="______">{@...}</a></h2>
 <p>An inline redirection. These work like normal redirections, except are inserted
 inline into a reply.</p>
@@ -925,16 +942,20 @@ in the final response of the bot; the changes are made silently.</p>
 <p>will make the text lowercase.</p>
 <p>
 </p>
+<h2><a name="_ok_">{ok}</a></h2>
+<p>This tag is used only with the <a href="#begin_statement">BEGIN STATEMENT</a>. It tells the interpreter
+that it's okay to go and get a reply.</p>
+<p>
+</p>
 <h2><a name="_s">\s</a></h2>
-<p>(New with Version 0.06) Inserts a white space. Simple as that.</p>
-<p>In version 0.06, reply continuations (- ^) would insert a space automatically
-when combining a reply. This is no longer the case. The \s tag must be included
-if you want spaces in the continuation.</p>
+<p>Inserts a white space. Simple as that. This is needed if you use the -^ combo
+for continuing a reply. RiveScript does not assume a space between the texts
+of the two tags.</p>
 <p>
 </p>
 <h2><a name="_n">\n</a></h2>
-<p>(New with Version 0.06) Inserts a newline. Note that this only happens when
-you request a <strong>reply()</strong> from the module.</p>
+<p>Inserts a newline. Note that this tag is interpreted at the time of grabbing
+a reply(). Other than that, it exists in memory as a literal '\n' (or ``\\n'')</p>
 <p>
 </p>
 <hr />
@@ -958,7 +979,7 @@ variable on Windows.</p>
 </p>
 <h2><a name="set_environment_variables">Set Environment Variables</a></h2>
 <p>Currently, RiveScript's syntax does not allow the modification of any variable
-beginning with ``env_''. If you absolutely most override one of these variables for
+beginning with ``env_''. If you absolutely must override one of these variables for
 any reason at all, you can call the <strong>setVariable()</strong> method to do so.</p>
 <p>
 </p>
@@ -1123,6 +1144,8 @@ handle all your definitions. For example it might look like this:</p>
   split_sentences    - Whether to do sentence-splitting (1 or 0, default 1)
   sentence_splitters - Where to split sentences at. Separate items with a single
                        space. The defaults are:   ! . ? ;
+  macro_failure      - Text to be inserted into a bot's reply when a macro fails
+                       to run (or return a reply).
   debug              - Debug mode (1 or 0, default 0)</pre>
 <p><strong>Make a begin file.</strong> This file would handle your BEGIN code. Again, this isn't
 required but has its benefits. This file might be called ``begin.rs'' (or you could
@@ -1150,6 +1173,15 @@ decide if it should give a reply.</p>
 </p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
+<pre>
+  Version 0.10
+  - The getUservars() method now returns a hashref of hashrefs if you want the
+    vars of all users. Makes it a little easier to label each set of variables
+    with the particular user involved. ;)
+  - Cleaned up some leftover print statements from my debugging in version 0.09
+    (sorry about that--again!)
+  - Made some revisions to the POD, fixed some typo's, added {weight} and {ok}
+    to the TAGS section.</pre>
 <pre>
   Version 0.09
   - $1 to $100+ are now done using an array rather than a hash. Theoretically

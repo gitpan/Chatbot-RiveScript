@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 sub new {
 	my $proto = shift;
@@ -31,8 +31,9 @@ sub new {
 		macros      => {},    # Subroutine macro objects
 
 		# Some editable globals.
-		split_sentences    => 1,         # Perform sentence-splitting.
-		sentence_splitters => '! . ? ;', # The sentence-splitters.
+		split_sentences    => 1,                    # Perform sentence-splitting.
+		sentence_splitters => '! . ? ;',            # The sentence-splitters.
+		macro_failure      => 'ERR(Macro Failure)', # Macro Failure Text
 		@_,
 	};
 
@@ -153,8 +154,15 @@ sub getUservars {
 		return $self->{uservars}->{$user};
 	}
 	else {
-		my $array = [];
-		push (@{$array}, $self->{uservars}->{$_}) foreach (keys %{$self->{uservars}});
+		my $returned = {};
+
+		foreach my $user (keys %{$self->{uservars}}) {
+			foreach my $var (keys %{$self->{uservars}->{$user}}) {
+				$returned->{$user}->{$var} = $self->{uservars}->{$user}->{$var};
+			}
+		}
+
+		return $returned;
 	}
 }
 
@@ -837,7 +845,6 @@ sub intReply {
 				my $rep = '';
 				if (exists $self->{botarrays}->{$name}) {
 					$rep = '(?:' . join ('|', @{$self->{botarrays}->{$name}}) . ')';
-					print "Filtered array = $rep\n";
 				}
 				$regexp =~ s/\@$o\b/$rep/ig;
 			}
@@ -1134,7 +1141,7 @@ sub intReply {
 			$returned = &{$self->{macros}->{$object}} ($method,$data);
 		}
 		else {
-			$returned = 'ERR(Unknown Macro)';
+			$returned = $self->{macro_failure} || 'ERR(Macro Failure!)';
 		}
 
 		$reply =~ s/\&(.*?)\((.*?)\)/$returned/i;
@@ -1539,7 +1546,7 @@ Chatbot::RiveScript - Rendering Intelligence Very Easily
 
   # Grab a response.
   my @reply = $rs->reply ('localhost','Hello RiveScript!');
-  print $reply[0] . "\n";
+  print join ("\n",@reply) . "\n";
 
 =head1 DESCRIPTION
 
@@ -1563,17 +1570,17 @@ Creates a new Chatbot::RiveScript instance. Pass in any defaults here.
 
 Define a macro (see Object Macros)
 
-=head2 loadDirectory (DIRECTORY[, EXTS])
+=head2 loadDirectory ($DIRECTORY[, @EXTS])
 
 Load a directory of RiveScript files. EXTS is optionally an array of file
 extensions to load, in the format B<(.rs .txt .etc)>. Default is just ".rs"
 
-=head2 loadFile (FILEPATH[, STREAM])
+=head2 loadFile ($FILEPATH[, $STREAM])
 
 Load a single file. Don't worry about the STREAM argument, it is handled
 in the stream() method.
 
-=head2 stream (CODE)
+=head2 stream ($CODE)
 
 Stream RiveScript code directly into the module.
 
@@ -1585,7 +1592,7 @@ It will sort them for you anyway, but it's always recommended to sort them
 yourself. For example, if you sort them and then load new replies, the new
 replies will not be matchable because the sort cache hasn't updated.
 
-=head2 reply (USER_ID, MESSAGE[, %TAGS])
+=head2 reply ($USER_ID, $MESSAGE[, %TAGS])
 
 Get a reply from the bot. This will return an array. The values of this
 array would be all the replies (i.e. if you use {nextreply} in a response
@@ -1604,13 +1611,13 @@ boolean (1 or 0, all default to 0):
               so the module knows it's on a retry run (if a reply isn't
               found, it tries again but sets no_split to true).
 
-=head2 search (STRING)
+=head2 search ($STRING)
 
 Search all loaded replies for every trigger that STRING matches. Returns an
 array of results, containing the trigger, what topic it was under, and the
 reference to its file and line number.
 
-=head2 write ([FILEPATH])
+=head2 write ([$FILEPATH])
 
 Outputs the current contents of the loaded replies into a single file. This
 is useful for if your application dynamically learns replies by editing the
@@ -1634,46 +1641,45 @@ Set a botvariable (alias for B<! var>)
 
 Set a substitution setting (alias for B<! sub>)
 
-=head2 setUservar (USER_ID, VARIABLE => VALUE, ...)
+=head2 setUservar ($USER_ID, VARIABLE => VALUE, ...)
 
 Set a user variable (alias for <set var=value>)
 
-=head2 getUservars (USER_ID)
+=head2 getUservars ([$USER_ID])
 
-Get all variables for a user, returns a hash reference. (alias for <get var>
-for every variable). If you don't provide a USER_ID, or provide '__rivescript__'
-(see Reserved Variables), it will return an array reference of hash references,
-to get variables of all users.
+Get all uservars for a user. Returns a hashref of the variables. If you don't
+pass in a $USER_ID, it will return a hashref of hashrefs for each user (first
+level being their ID, second level being their variables).
 
 =head1 PRIVATE METHODS
 
 These methods are called on internally and should not be called by you.
 
-=head2 debug (MESSAGE)
+=head2 debug ($MESSAGE)
 
 Print a debug message.
 
-=head2 intReply (USER_ID, MESSAGE)
+=head2 intReply ($USER_ID, $MESSAGE)
 
 This should not be called. Call B<reply> instead. This method assumes
 that the variables are neatly formatted and may cause serious consequences
 for passing in badly formatted data.
 
-=head2 splitSentences (STRING)
+=head2 splitSentences ($STRING)
 
 Splits string at the sentence-splitters and returns an array.
 
-=head2 formatMessage (STRING)
+=head2 formatMessage ($STRING)
 
 Formats the message (runs substitutions, removes punctuation, etc)
 
-=head2 mergeWildcards (STRING, ARRAY)
+=head2 mergeWildcards ($STRING, $ARRAY)
 
 Merges the values from ARRAY into STRING, where the items in ARRAY
 correspond to a captured value from $1 to $100+. The first item in the
 array should be blank; there is no such thing as a E<lt>star0E<gt>.
 
-=head2 stringUtil (TYPE, STRING)
+=head2 stringUtil ($TYPE, $STRING)
 
 Called on for string format tags (uppercase, lowercase, formal, sentence).
 
@@ -1720,6 +1726,9 @@ Some examples:
   ! global debug = 1
   ! global split_sentences = 1
   ! global sentence_splitters = . ! ; ?
+
+  // Setup a handler for macro failures.
+  ! global macro_failure = <b>ERROR: Macro Failure</b>
 
   // Set bot vars
   ! var botname   = Casey Rive
@@ -1793,8 +1802,6 @@ other uses that we'll get into later.
 =item B<^ (Continue)>
 
 The ^Continue command is for extending the previous command down a line.
-Normally, this would only reply to -REPLY but in B<Version 0.06> this
-has expanded to handle extensions of multiple types of commands.
 
 The commands that can be continued with ^Continue:
 
@@ -1807,8 +1814,8 @@ The commands that can be continued with ^Continue:
   @ redirection
 
 Sometimes your -REPLY is too long to fit on one line, and you don't like
-the idea of having a horizontal scrollbar. The ^ command will continue on
-from the last -REPLY. For example:
+the idea of having a horizontal scrollbar on your text editor.
+The ^ command will continue on from the last -REPLY. For example:
 
   + tell me a poem
   - Little Miss Muffit sat on her tuffet\s
@@ -1817,8 +1824,7 @@ from the last -REPLY. For example:
   ^ the Spider, the bounder,\s
   ^ is not in the picture today.
 
-Here are some examples of the other uses of ^Continue new with version
-0.06:
+Here are some examples of the other uses of ^Continue:
 
   ! array colors  = red blue green yellow cyan fuchsia
   ^ white black gray grey orange pink
@@ -1834,11 +1840,6 @@ Here are some examples of the other uses of ^Continue new with version
   + how much wood
   @ how much wood would a woodchuck\s
   ^ chuck if a woodchuck could chuck wood
-
-B<Change Note:> In version 0.06, a continuation of a -REPLY no longer assumes
-a space between the parts of the response. For an example, look up at the
-"tell me a poem" example just above. You now need to include a \s (see L<"TAGS">)
-to include a white space.
 
 =item B<@ (Redirect)>
 
@@ -2146,9 +2147,26 @@ arguments. The method would be the bit following the dot (i.e. "cityname",
 Whatever weather_lookup would return is inserted into the reply in place of the
 macro call.
 
+B<Note:> If a macro does not exist, has faulty code, or does not return a reply,
+the contents of global "macro_failure" will be inserted instead. At this time the
+module is unable to tell you which of the three errors is the cause.
+
 =head1 TAGS
 
-Special tags can be inserted into replies and redirections. They are as follows:
+Special tags can be inserted into replies and redirections. Tags either have
+E<lt>angle bracketsE<gt> or {curly brackets}. The E<lt>angle bracketsE<gt> are
+generally for things that insert something back into the message, such as
+E<lt>starE<gt>, E<lt>idE<gt>, or E<LT>input5E<gt>. The {curly brackets} are
+generally for things that operate in silence and don't output anything, such
+as {topic} which modifies the topic, or they're modifiers of text, such as
+{random} and {uppercase}.
+
+Also, tags closely tied to others in function will have the same symbols as
+them. For instance, E<lt>setE<gt> doesn't output anything but is close in
+function to E<lt>getE<gt>. This is just an explanation of my choice of symbols.
+That being said, you can ignore these two paragraphs. ;)
+
+The supported tags are as follows:
 
 =head2 E<lt>starE<gt>, E<lt>star1E<gt> - E<lt>star100E<gt>
 
@@ -2221,6 +2239,12 @@ one is evaluated.
 Breaks the reply into two (or more) parts there. Will cause the B<reply> method
 to return multiple responses.
 
+=head2 {weight=...}
+
+A -REPLY can have a weight tag applied to it to change the probability of it being
+chosen (when there is more than one reply that could be randomly chosen).
+See L<"COMPLEXITIES OF THE RESPONSE">.
+
 =head2 {@...}
 
 An inline redirection. These work like normal redirections, except are inserted
@@ -2265,18 +2289,21 @@ WILL MAKE THE TEXT UPPERCASE.
 
 will make the text lowercase.
 
+=head2 {ok}
+
+This tag is used only with the L<"BEGIN STATEMENT">. It tells the interpreter
+that it's okay to go and get a reply.
+
 =head2 \s
 
-(New with Version 0.06) Inserts a white space. Simple as that.
-
-In version 0.06, reply continuations (- ^) would insert a space automatically
-when combining a reply. This is no longer the case. The \s tag must be included
-if you want spaces in the continuation.
+Inserts a white space. Simple as that. This is needed if you use the -^ combo
+for continuing a reply. RiveScript does not assume a space between the texts
+of the two tags.
 
 =head2 \n
 
-(New with Version 0.06) Inserts a newline. Note that this only happens when
-you request a B<reply()> from the module.
+Inserts a newline. Note that this tag is interpreted at the time of grabbing
+a reply(). Other than that, it exists in memory as a literal '\n' (or "\\n")
 
 =head1 ENVIRONMENTAL VARIABLES
 
@@ -2298,7 +2325,7 @@ variable on Windows.
 =head2 Set Environment Variables
 
 Currently, RiveScript's syntax does not allow the modification of any variable
-beginning with "env_". If you absolutely most override one of these variables for
+beginning with "env_". If you absolutely must override one of these variables for
 any reason at all, you can call the B<setVariable()> method to do so.
 
 =head1 PERSON SUBSTITUTION
@@ -2473,6 +2500,8 @@ Here are a list of all the globals you might want to configure.
   split_sentences    - Whether to do sentence-splitting (1 or 0, default 1)
   sentence_splitters - Where to split sentences at. Separate items with a single
                        space. The defaults are:   ! . ? ;
+  macro_failure      - Text to be inserted into a bot's reply when a macro fails
+                       to run (or return a reply).
   debug              - Debug mode (1 or 0, default 0)
 
 B<Make a begin file.> This file would handle your BEGIN code. Again, this isn't
@@ -2499,6 +2528,15 @@ You might want to take a look at L<Chatbot::Alpha>, this module's predecessor.
 None yet known.
 
 =head1 CHANGES
+
+  Version 0.10
+  - The getUservars() method now returns a hashref of hashrefs if you want the
+    vars of all users. Makes it a little easier to label each set of variables
+    with the particular user involved. ;)
+  - Cleaned up some leftover print statements from my debugging in version 0.09
+    (sorry about that--again!)
+  - Made some revisions to the POD, fixed some typo's, added {weight} and {ok}
+    to the TAGS section.
 
   Version 0.09
   - $1 to $100+ are now done using an array rather than a hash. Theoretically

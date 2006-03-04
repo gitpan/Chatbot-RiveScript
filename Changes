@@ -1,5 +1,14 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.10 Sat Mar  4 12:49:30 2006
+	- The getUservars() method now returns a hashref of hashrefs if you want the
+		vars of all users. Makes it a little easier to label each set of variables
+		with the particular user involved. ;)
+	- Cleaned up some leftover print statements from my debugging in version 0.09
+		(sorry about that--again!)
+	- Made some revisions to the POD, fixed some typo's, added {weight} and {ok}
+		to the TAGS section.
+
 0.09 Thu Mar  2 18:43:00 2006
 	- $1 to $100+ are now done using an array rather than a hash. Theoretically
 		this allows any number of stars, even greater than 100.

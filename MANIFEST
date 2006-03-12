@@ -6,6 +6,10 @@ RiveScript.pl
 RiveScript.html
 t/Chatbot-RiveScript.t
 lib/Chatbot/RiveScript.pm
+lib/Chatbot/RiveScript/English.rsl
+lib/Chatbot/RiveScript/English/EnglishAdj.rsl
+lib/Chatbot/RiveScript/English/EnglishNouns.rsl
+lib/Chatbot/RiveScript/English/EnglishVerbs.rsl
 replies/begin.rs
 replies/config.rs
 replies/hello.rs

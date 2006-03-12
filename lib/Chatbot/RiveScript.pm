@@ -4,7 +4,7 @@ use strict;
 no strict 'refs';
 use warnings;
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 sub new {
 	my $proto = shift;
@@ -14,7 +14,7 @@ sub new {
 		debug   => 0,
 		reserved    => [      # Array of reserved (unmodifiable) keys.
 			qw (reserved replies array syntax streamcache botvars uservars botarrays
-			sort users substitutions),
+			sort users substitutions library),
 		],
 		replies     => {},    # Replies
 		array       => {},    # Sorted replies array
@@ -29,6 +29,7 @@ sub new {
 		sort        => {},    # For reply sorting
 		loops       => {},    # Reply recursion
 		macros      => {},    # Subroutine macro objects
+		library     => ['.'], # Include Libraries
 
 		# Some editable globals.
 		split_sentences    => 1,                    # Perform sentence-splitting.
@@ -46,6 +47,11 @@ sub new {
 	foreach my $var (keys %ENV) {
 		my $lab = 'ENV_SYS_' . $var;
 		$self->{botvars}->{$lab} = $ENV{$var};
+	}
+
+	# Include Libraries.
+	foreach my $inc (@INC) {
+		push (@{$self->{library}}, "$inc/Chatbot/RiveScript");
 	}
 
 	bless ($self,$class);
@@ -176,8 +182,16 @@ sub loadDirectory {
 
 	# Load a directory.
 	if (-d $dir) {
+		# Include "begin.rs" first.
+		if (-e "$dir/begin.rs") {
+			print "Loading begin.rs first!\n";
+			$self->loadFile ("$dir/begin.rs");
+		}
+
 		opendir (DIR, $dir);
 		foreach my $file (sort(grep(!/^\./, readdir(DIR)))) {
+			next if $file eq 'begin.rs';
+
 			# Load in this file.
 			my $okay = 0;
 			foreach my $type (@ext) {
@@ -481,6 +495,27 @@ sub loadFile {
 					$self->debug ("\tDeleting person $what");
 					delete $self->{person}->{$what};
 				}
+			}
+			elsif ($type eq 'addpath') {
+				# Add a search path.
+				if (defined $what) {
+					push (@{$self->{library}}, $what);
+				}
+			}
+			elsif ($type eq 'include') {
+				# An Include Directive
+
+				my $found = 0;
+				my $path = '';
+				foreach my $inc (@{$self->{library}}) {
+					if (-e "$inc/$what") {
+						$found = 1;
+						$path = "$inc/$what";
+						last;
+					}
+				}
+
+				$self->loadFile ("$path");
 			}
 			else {
 				warn "Unsupported type at $file line $num";
@@ -1714,11 +1749,13 @@ to define variables and arrays. Their format is as follows:
 
 The supported types are as follows:
 
-  global - Global settings (top-level things)
-  var    - BotVariables (i.e. the bot's name, age, etc)
-  array  - An array
-  sub    - A substitution pattern
-  person - A person substitution.
+  global  - Global settings (top-level things)
+  var     - BotVariables (i.e. the bot's name, age, etc)
+  array   - An array
+  sub     - A substitution pattern
+  person  - A person substitution.
+  addpath - Add an include path
+  include - An include method
 
 Some examples:
 
@@ -1744,6 +1781,15 @@ Some examples:
   ! person you = me
   ! person am  = are
   ! person are = am
+
+  // Add a path to find libraries.
+  ! addpath C:/MyRsLibraries
+
+  // Include a library of arrays
+  ! include English/EngVerbs.rsl
+
+  // Include a package of objects
+  ! include DateTime.rsp
 
 B<Note:> For arrays, you can have multi-word items if you separate the entries
 with a pipe ("|") symbol rather than a space.
@@ -2027,6 +2073,9 @@ response without weight. Weights of less than 1 aren't acceptable)
 
 =head1 BEGIN STATEMENT
 
+B<The BEGIN file is the first reply file loaded in a loadDirectory call.>
+If a "begin.rs" file exists in the directory being loaded, it is included first.
+
 B<Note:> BEGIN statements are not required. That being said, begin statements
 are executed before any request.
 
@@ -2055,6 +2104,9 @@ That would give the reply about the bot being under maintenance if the variable
 "down" equals "yes." Else, it would give a response in red bold font.
 
 B<Note:> At the time being, the only trigger that BEGIN ever receives is "request"
+
+The "begin.rs" file is also where you would place your B<!include> statements to
+make sure that they're included before any other files.
 
 =head1 TOPICS
 
@@ -2437,6 +2489,32 @@ call sortReplies() and it will manage it automatically.
   # Perl code. Access this one's reply.
   $rs->{replies}->{'__that__whos there'}->{1}
 
+=head1 INCLUDED FILES
+
+B<Recommended Practice> is to put all your B<!include> statements inside your "begin.rs"
+file, as this file is loaded in first. The "include" statement is for including common
+libraries or packages.
+
+=head2 RiveScript Libraries
+
+RiveScript Libraries (B<.rsl> extention) are special RiveScript documents which contain
+nothing but B<!arrays> and B<!substitutions> and the like. For instance, you could make
+a language library which could contain arrays of verbs and their conjugations.
+
+=head2 RiveScript Packages
+
+RiveScript Packages (B<.rsp> extension) are special RiveScript documents which contain
+one (or more) objects. For example, you might create a RiveScript package full of objects
+for returning the date and time in different formats.
+
+=head2 RiveScript Include Search Path
+
+The current RiveScript Includes search path is an array of Perl's @INC, with "/Chatbot/RiveScript"
+tacked on the end of it. Also "." is an include path (the working directory of the script
+running Chatbot::RiveScript).
+
+You can use the B<!addpath> directive to add new search paths.
+
 =head1 RESERVED VARIABLES
 
 The following are all the reserved variables and values within RiveScript's
@@ -2504,9 +2582,12 @@ Here are a list of all the globals you might want to configure.
                        to run (or return a reply).
   debug              - Debug mode (1 or 0, default 0)
 
-B<Make a begin file.> This file would handle your BEGIN code. Again, this isn't
-required but has its benefits. This file might be called "begin.rs" (or you could
-include it in config.rs if you're a micromanager).
+B<Make a begin file.> Create a file called "begin.rs" -- there are several reasons
+for doing so.
+
+For one, you should use this file for B<!include> statements if you want your brain
+to use some common libraries or packages. Secondly, you can use the B<E<gt>BEGIN>
+statement to setup a handler for incoming messages.
 
 Your begin file could check the "active" variable we set in the config file to
 decide if it should give a reply.
@@ -2528,6 +2609,11 @@ You might want to take a look at L<Chatbot::Alpha>, this module's predecessor.
 None yet known.
 
 =head1 CHANGES
+
+  Version 0.11
+  - When calling loadDirectory, a "begin.rs" file is always loaded first
+    (provided the file exists, of course!)
+  - Added support for "include"ing libraries and packages (see "INCLUDED FILES")
 
   Version 0.10
   - The getUservars() method now returns a hashref of hashrefs if you want the

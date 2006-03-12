@@ -103,6 +103,14 @@
 		<li><a href="#examples">Examples</a></li>
 	</ul>
 
+	<li><a href="#included_files">INCLUDED FILES</a></li>
+	<ul>
+
+		<li><a href="#rivescript_libraries">RiveScript Libraries</a></li>
+		<li><a href="#rivescript_packages">RiveScript Packages</a></li>
+		<li><a href="#rivescript_include_search_path">RiveScript Include Search Path</a></li>
+	</ul>
+
 	<li><a href="#reserved_variables">RESERVED VARIABLES</a></li>
 	<ul>
 
@@ -329,11 +337,13 @@ to define variables and arrays. Their format is as follows:
 </dd>
 <dd>
 <pre>
-  global - Global settings (top-level things)
-  var    - BotVariables (i.e. the bot's name, age, etc)
-  array  - An array
-  sub    - A substitution pattern
-  person - A person substitution.</pre>
+  global  - Global settings (top-level things)
+  var     - BotVariables (i.e. the bot's name, age, etc)
+  array   - An array
+  sub     - A substitution pattern
+  person  - A person substitution.
+  addpath - Add an include path
+  include - An include method</pre>
 </dd>
 <dd>
 <p>Some examples:</p>
@@ -370,6 +380,21 @@ to define variables and arrays. Their format is as follows:
   ! person you = me
   ! person am  = are
   ! person are = am</pre>
+</dd>
+<dd>
+<pre>
+  // Add a path to find libraries.
+  ! addpath C:/MyRsLibraries</pre>
+</dd>
+<dd>
+<pre>
+  // Include a library of arrays
+  ! include English/EngVerbs.rsl</pre>
+</dd>
+<dd>
+<pre>
+  // Include a package of objects
+  ! include DateTime.rsp</pre>
 </dd>
 <dd>
 <p><strong>Note:</strong> For arrays, you can have multi-word items if you separate the entries
@@ -696,6 +721,8 @@ response without weight. Weights of less than 1 aren't acceptable)</p>
 </p>
 <hr />
 <h1><a name="begin_statement">BEGIN STATEMENT</a></h1>
+<p><strong>The BEGIN file is the first reply file loaded in a loadDirectory call.</strong>
+If a ``begin.rs'' file exists in the directory being loaded, it is included first.</p>
 <p><strong>Note:</strong> BEGIN statements are not required. That being said, begin statements
 are executed before any request.</p>
 <p><strong>How to define a BEGIN statement</strong></p>
@@ -720,6 +747,8 @@ useful to format all responses in one way. For a good example:</p>
 <p>That would give the reply about the bot being under maintenance if the variable
 ``down'' equals ``yes.'' Else, it would give a response in red bold font.</p>
 <p><strong>Note:</strong> At the time being, the only trigger that BEGIN ever receives is ``request''</p>
+<p>The ``begin.rs'' file is also where you would place your <strong>!include</strong> statements to
+make sure that they're included before any other files.</p>
 <p>
 </p>
 <hr />
@@ -1083,6 +1112,32 @@ call <code>sortReplies()</code> and it will manage it automatically.</p>
 <p>
 </p>
 <hr />
+<h1><a name="included_files">INCLUDED FILES</a></h1>
+<p><strong>Recommended Practice</strong> is to put all your <strong>!include</strong> statements inside your ``begin.rs''
+file, as this file is loaded in first. The ``include'' statement is for including common
+libraries or packages.</p>
+<p>
+</p>
+<h2><a name="rivescript_libraries">RiveScript Libraries</a></h2>
+<p>RiveScript Libraries (<strong>.rsl</strong> extention) are special RiveScript documents which contain
+nothing but <strong>!arrays</strong> and <strong>!substitutions</strong> and the like. For instance, you could make
+a language library which could contain arrays of verbs and their conjugations.</p>
+<p>
+</p>
+<h2><a name="rivescript_packages">RiveScript Packages</a></h2>
+<p>RiveScript Packages (<strong>.rsp</strong> extension) are special RiveScript documents which contain
+one (or more) objects. For example, you might create a RiveScript package full of objects
+for returning the date and time in different formats.</p>
+<p>
+</p>
+<h2><a name="rivescript_include_search_path">RiveScript Include Search Path</a></h2>
+<p>The current RiveScript Includes search path is an array of Perl's @INC, with ``/Chatbot/RiveScript''
+tacked on the end of it. Also ``.'' is an include path (the working directory of the script
+running Chatbot::RiveScript).</p>
+<p>You can use the <strong>!addpath</strong> directive to add new search paths.</p>
+<p>
+</p>
+<hr />
 <h1><a name="reserved_variables">RESERVED VARIABLES</a></h1>
 <p>The following are all the reserved variables and values within RiveScript's
 processor.</p>
@@ -1147,9 +1202,11 @@ handle all your definitions. For example it might look like this:</p>
   macro_failure      - Text to be inserted into a bot's reply when a macro fails
                        to run (or return a reply).
   debug              - Debug mode (1 or 0, default 0)</pre>
-<p><strong>Make a begin file.</strong> This file would handle your BEGIN code. Again, this isn't
-required but has its benefits. This file might be called ``begin.rs'' (or you could
-include it in config.rs if you're a micromanager).</p>
+<p><strong>Make a begin file.</strong> Create a file called ``begin.rs'' -- there are several reasons
+for doing so.</p>
+<p>For one, you should use this file for <strong>!include</strong> statements if you want your brain
+to use some common libraries or packages. Secondly, you can use the <strong>&gt;BEGIN</strong>
+statement to setup a handler for incoming messages.</p>
 <p>Your begin file could check the ``active'' variable we set in the config file to
 decide if it should give a reply.</p>
 <pre>
@@ -1173,6 +1230,11 @@ decide if it should give a reply.</p>
 </p>
 <hr />
 <h1><a name="changes">CHANGES</a></h1>
+<pre>
+  Version 0.11
+  - When calling loadDirectory, a &quot;begin.rs&quot; file is always loaded first
+    (provided the file exists, of course!)
+  - Added support for &quot;include&quot;ing libraries and packages (see &quot;INCLUDED FILES&quot;)</pre>
 <pre>
   Version 0.10
   - The getUservars() method now returns a hashref of hashrefs if you want the

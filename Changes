@@ -1,5 +1,10 @@
 Revision history for Perl extension Chatbot::RiveScript.
 
+0.11 Sun Mar 12 11:19:00 2006
+	- When calling loadDirectory, a "begin.rs" file is always loaded first
+		(provided the file exists, of course!)
+	- Added support for "include"ing libraries and packages (see "INCLUDED FILES")
+
 0.10 Sat Mar  4 12:49:30 2006
 	- The getUservars() method now returns a hashref of hashrefs if you want the
 		vars of all users. Makes it a little easier to label each set of variables

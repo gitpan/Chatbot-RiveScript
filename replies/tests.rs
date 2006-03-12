@@ -343,3 +343,10 @@
 
 + *i (@be)*
 - Do you wish to believe you are {person}<star3>{/person}?
+
+/* ##############################
+   ## Test English Libraries   ##
+   ############################## */
+
++ test eng (@aMinimum)
+- You said <star>.
